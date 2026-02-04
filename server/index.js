@@ -2,13 +2,16 @@ require('dotenv').config();
 const express = require('express');
 const connectDB = require('./config/db');
 const routes = require('./routes');
+const config = require('./config/config');
+const cookieParser = require("cookie-parser");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = config.PORT;
 
 connectDB();
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.use("/*splat", function (req, res, next) { // Allowing CORS
     res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
