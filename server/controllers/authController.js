@@ -7,7 +7,7 @@ const sendPasswordResetMail = require('../utils/sendPasswordRestMail');
 
 exports.signup = async (req, res) => {
     try {
-        const { name, username, email, password,confirm_password, year} = req.body;
+        const { name, username, email, password, confirm_password, year } = req.body;
         if(!name || !username || !email || !password || !confirm_password || !year) {
             return res.status(400).send({
                 message : "All fields are required"
@@ -98,7 +98,7 @@ exports.verifyMail = async(req, res) => {
     }
 }
 
-exports.resetPasswordLink = async (req, res) =>{
+exports.resetPasswordMail = async (req, res) =>{
     try {
         const {email} = req.body;
 
