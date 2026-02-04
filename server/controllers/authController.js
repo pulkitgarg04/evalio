@@ -2,11 +2,13 @@ const User = require('../models/User');
 const sendVerificationMail = require('../utils/sendVerificationMail');
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const config = require('../config/config');
+const sendPasswordResetMail = require('../utils/sendPasswordRestMail');
 
 exports.signup = async (req, res) => {
     try {
-        const { name, username, email, password,confirm_password, year, role } = req.body;
-        if(!name || !username || !email || !password || !confirm_password || !year || !role ) {
+        const { name, username, email, password,confirm_password, year} = req.body;
+        if(!name || !username || !email || !password || !confirm_password || !year) {
             return res.status(400).send({
                 message : "All fields are required"
             })
@@ -27,7 +29,6 @@ exports.signup = async (req, res) => {
             email : email,
             password : password,
             study_year : year,
-            role : role,
         })
 
         await user.save();
@@ -94,5 +95,49 @@ exports.verifyMail = async(req, res) => {
 
     }catch(err) {
         res.status(500).send(err);
+    }
+}
+
+exports.resetPasswordLink = async (req, res) =>{
+    try {
+        const {email} = req.body;
+
+        const user = await User.findOne({ email: email });
+        if (!user) return res.status(400).send({ error: 'Email is not registered with us' });
+
+        await sendPasswordResetMail(user);
+
+    }catch(err){
+        res.status(500).send(err);
+    }
+}
+
+exports.resetPassowrd = async(req,res) => {
+    try {
+        const { token } = req.params;
+        const { password, confirm_password } = req.body;
+
+       if (confirm_password !== password) {
+            return res.status(400).send("Passwords don't match");
+        }
+
+        
+        const decoded = jwt.verify(token,config.JWT_RESET_PASSWORD_SECRET);
+        if (!decoded || !decoded.user_id) {
+            return res.status(400).send({ message: "Invalid or expired token" });
+        }
+
+    
+        const user = await User.findById(decoded.user_id);
+        if (!user) {
+            return res.status(400).send({ message: "User not found" });
+        }
+        
+        user.password = password;
+        await user.save();
+
+        return res.status(200).send("success");
+    } catch (err) {
+        return res.status(400).send(err);
     }
 }
