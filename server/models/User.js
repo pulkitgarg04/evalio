@@ -3,33 +3,27 @@ const bcrypt = require('bcrypt');
 const validator = require('validator');
 
 const userSchema = new mongoose.Schema({
-    name : {
-        type : String,
-        required : true,
-        trim : true,
+    name: {
+        type: String,
+        required: true,
+        trim: true,
     },
-    username : {
-        type : String,
-        required : true,
-        unique : true,
-        trim : true,
-    },
-    email : {
-        type : String,
-        required : true,
-        unique : true,
-        trim : true,
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
         validate(value) {
             if (!validator.isEmail(value)) {
                 throw new Error('please provide valid email');
             }
         }
     },
-    password : {
-        type : String,
-        required : true,
-        trim : true,
-        minLength : 8,
+    password: {
+        type: String,
+        required: true,
+        trim: true,
+        minLength: 8,
         validate(value) {
             if (!validator.isStrongPassword(value, {
                 minLength: 8,
@@ -42,14 +36,14 @@ const userSchema = new mongoose.Schema({
             }
         }
     },
-    createdAt : {
-        type : Date,
-        default : Date.now,
-        immutable : true,
+    createdAt: {
+        type: Date,
+        default: Date.now,
+        immutable: true,
     },
-    isVerified : {
-        type : Boolean,
-        default : false,
+    isVerified: {
+        type: Boolean,
+        default: false,
     },
     role: {
         type: String,
@@ -58,11 +52,11 @@ const userSchema = new mongoose.Schema({
     },
     study_year: {
         type: Number,
-        default : 1
+        default: 1
     },
 })
 
-userSchema.pre('save',async function () {
+userSchema.pre('save', async function () {
     const user = this;
     if (user.isModified('password')) {
         user.password = await bcrypt.hash(user.password, 8);

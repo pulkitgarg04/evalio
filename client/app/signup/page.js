@@ -1,10 +1,64 @@
 "use client";
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 export default function SignupPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    year: '',
+    password: '',
+    confirm_password: ''
+  });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    if (formData.password !== formData.confirm_password) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || data.error || 'Signup failed');
+      }
+
+      setSuccess("Signup successful! Please check your email for verification.");
+      setTimeout(() => {
+        router.push('/login');
+      }, 3000);
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-white font-sans">
@@ -59,26 +113,31 @@ export default function SignupPage() {
         </div>
       </div>
 
-      <div className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-24">
+      <div className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-24 overflow-y-auto max-h-screen">
         <Link href="/" className="absolute top-6 left-6 lg:left-auto lg:right-12 flex items-center text-gray-400 hover:text-[#0a3a30] transition-colors font-medium">
           <ArrowLeft size={20} className="mr-2" /> Back to Home
         </Link>
-
-        <div className="mb-8">
+        <div className="mb-8 mt-10">
           <h1 className="text-3xl font-bold text-[#0a3a30]">Create an Account</h1>
           <p className="mt-2 text-sm text-gray-500">
             Enter your details to get started
           </p>
         </div>
 
-        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+        {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>}
+        {success && <div className="mb-4 p-3 bg-green-50 text-green-600 rounded-lg text-sm">{success}</div>}
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <label className="text-sm font-bold text-[#0a3a30] leading-none" htmlFor="name">Full Name</label>
             <input
               className="flex h-12 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a3a30]/20 focus-visible:border-[#0a3a30] transition-all"
               id="name"
+              value={formData.name}
+              onChange={handleChange}
               placeholder="Aarav Mittal"
               type="text"
+              required
             />
           </div>
 
@@ -87,9 +146,11 @@ export default function SignupPage() {
             <input
               className="flex h-12 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a3a30]/20 focus-visible:border-[#0a3a30] transition-all"
               id="email"
-              placeholder="aaravXXXX@chitkara.edu.in"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="aarav@example.com"
               type="email"
-              autoComplete="email"
+              required
             />
           </div>
 
@@ -98,6 +159,9 @@ export default function SignupPage() {
             <select
               className="flex h-12 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a3a30]/20 focus-visible:border-[#0a3a30] transition-all appearance-none"
               id="year"
+              value={formData.year}
+              onChange={handleChange}
+              required
             >
               <option value="">Select Year</option>
               <option value="1">1st Year</option>
@@ -113,21 +177,41 @@ export default function SignupPage() {
               <input
                 className="flex h-12 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a3a30]/20 focus-visible:border-[#0a3a30] transition-all pr-10"
                 id="password"
+                value={formData.password}
+                onChange={handleChange}
                 type={showPassword ? "text" : "password"}
+                required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                tabIndex="-1"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
-          <Link href="/dashboard" className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#0a3a30] px-8 text-sm font-bold text-white shadow-lg shadow-emerald-900/10 transition-all hover:bg-[#022c22] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 mt-4">
-            Sign Up
-          </Link>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-[#0a3a30] leading-none" htmlFor="confirm_password">Confirm Password</label>
+            <input
+              className="flex h-12 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a3a30]/20 focus-visible:border-[#0a3a30] transition-all"
+              id="confirm_password"
+              value={formData.confirm_password}
+              onChange={handleChange}
+              type="password"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#0a3a30] px-8 text-sm font-bold text-white shadow-lg shadow-emerald-900/10 transition-all hover:bg-[#022c22] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Creating Account...' : 'Sign Up'}
+          </button>
         </form>
 
         <p className="mt-8 text-center text-sm text-gray-500">

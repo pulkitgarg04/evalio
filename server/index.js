@@ -4,24 +4,19 @@ const connectDB = require('./config/db');
 const routes = require('./routes');
 const config = require('./config/config');
 const cookieParser = require("cookie-parser");
-
+const cors = require('cors');
 const app = express();
 const PORT = config.PORT;
 
 connectDB();
 
+app.use(cors({
+    origin: [process.env.FRONTEND_URL, 'http://localhost:3000', 'https://localhost:3000'],
+    credentials: true
+}));
+
 app.use(express.json());
 app.use(cookieParser());
-
-app.use("/*splat", function (req, res, next) { // Allowing CORS
-    res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
-    res.setHeader(
-        "Access-Control-Allow-Methods",
-        "GET, POST, PUT, PATCH, DELETE"
-    );
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    next();
-});
 
 app.use('/api/v1', routes);
 

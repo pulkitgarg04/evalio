@@ -3,6 +3,7 @@ import {
   LayoutDashboard, 
   Users, 
   FileText, 
+  HelpCircle,
   Settings, 
   LogOut 
 } from 'lucide-react';
@@ -11,7 +12,8 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/admin" },
   { icon: Users, label: "Students", href: "/admin/users" },
-  { icon: FileText, label: "Tests & Questions", href: "/admin/tests" },
+  { icon: FileText, label: "Tests", href: "/admin/tests" },
+  { icon: HelpCircle, label: "Add Question", href: "/admin/questions/add" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];
 

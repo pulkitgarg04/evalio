@@ -7,15 +7,11 @@ const sendPasswordResetMail = require('../utils/sendPasswordRestMail');
 
 exports.signup = async (req, res) => {
     try {
-        const { name, username, email, password, confirm_password, year } = req.body;
-        if(!name || !username || !email || !password || !confirm_password || !year) {
+        const { name, email, password, year } = req.body;
+        if (!name || !email || !password || !year) {
             return res.status(400).send({
-                message : "All fields are required"
+                message: "All fields are required"
             })
-        }
-
-        if(password != confirm_password){
-            return res.status(400).send({message : "Password Doesn't Match"});
         }
 
         const existing = await User.findOneAndDelete({
@@ -24,60 +20,60 @@ exports.signup = async (req, res) => {
         });
 
         const user = new User({
-            name : name,
-            username : username,
-            email : email,
-            password : password,
-            study_year : year,
+            name: name,
+            email: email,
+            password: password,
+            study_year: year,
         })
 
         await user.save();
         await sendVerificationMail(user);
         return res.status(200).send({
-            message : "signup successful"
+            message: "signup successful"
         })
 
-    } catch(err) {
-        res.status(400).send({error : err.message});
+    } catch (err) {
+        res.status(400).send({ error: err.message });
     }
 }
 
 exports.login = async (req, res) => {
     try {
-        const { email,password } = req.body;
+        const { email, password } = req.body;
 
-        if(!email || !password) return res.status(400).send({
-            message : "All fields are required"
+        if (!email || !password) return res.status(400).send({
+            message: "All fields are required"
         })
 
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).send({ error: "Invalid Credentials" });
         }
-        
+
         if (!user.isVerified) {
             await sendVerificationMail(user);
-            return res.status(401).send({ message : "user is not verified. Check your inbox for verification mail" });
+            return res.status(401).send({ message: "user is not verified. Check your inbox for verification mail" });
         }
 
         const isPasswordMatch = await bcrypt.compare(password, user.password);
         if (!isPasswordMatch) {
             return res.status(400).send({ error: "Invalid Credentials" });
         }
-        const token = jwt.sign({ user_id: user._id },config.JWT_TOKEN_SECRET, { expiresIn: '30d' });
+        const token = jwt.sign({ user_id: user._id }, config.JWT_TOKEN_SECRET, { expiresIn: '30d' });
 
         res.status(200).send({
             token: token,
             username: user.name,
-            user_id : user._id
+            user_id: user._id,
+            role: user.role
         });
 
-    }catch(err) {
-        res.status(400).send({error : err.message});
+    } catch (err) {
+        res.status(400).send({ error: err.message });
     }
 }
 
-exports.verifyMail = async(req, res) => {
+exports.verifyMail = async (req, res) => {
     try {
         const { token } = req.params;
 
@@ -87,52 +83,61 @@ exports.verifyMail = async(req, res) => {
         const user = await User.findById(decoded.user_id);
         if (!user) return res.status(400).send({ message: "Invalid Token" });
 
-        if(user.isVerified) return res.status(200).send({ message: "User is already verified" })
+        if (user.isVerified) return res.status(200).send({ message: "User is already verified" })
         user.isVerified = true;
 
         await user.save();
         res.status(200).send({ message: "User has been verified" });
 
-    }catch(err) {
+    } catch (err) {
         res.status(500).send(err);
     }
 }
 
-exports.resetPasswordMail = async (req, res) =>{
+exports.getAllUsers = async (req, res) => {
     try {
-        const {email} = req.body;
+        const users = await User.find({}, '-password').sort({ createdAt: -1 });
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.resetPasswordMail = async (req, res) => {
+    try {
+        const { email } = req.body;
 
         const user = await User.findOne({ email: email });
         if (!user) return res.status(400).send({ error: 'Email is not registered with us' });
 
         await sendPasswordResetMail(user);
 
-    }catch(err){
+    } catch (err) {
         res.status(500).send(err);
     }
 }
 
-exports.resetPassowrd = async(req,res) => {
+exports.resetPassowrd = async (req, res) => {
     try {
         const { token } = req.params;
         const { password, confirm_password } = req.body;
 
-       if (confirm_password !== password) {
+        if (confirm_password !== password) {
             return res.status(400).send("Passwords don't match");
         }
 
-        
-        const decoded = jwt.verify(token,config.JWT_RESET_PASSWORD_SECRET);
+
+        const decoded = jwt.verify(token, config.JWT_RESET_PASSWORD_SECRET);
         if (!decoded || !decoded.user_id) {
             return res.status(400).send({ message: "Invalid or expired token" });
         }
 
-    
+
         const user = await User.findById(decoded.user_id);
         if (!user) {
             return res.status(400).send({ message: "User not found" });
         }
-        
+
         user.password = password;
         await user.save();
 
