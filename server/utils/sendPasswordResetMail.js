@@ -21,14 +21,14 @@ const sendPasswordResetMail = async (user) => {
     });
 
     const mailOptions = {
-      from: `"evalio" <${config.NODEMAILER_MAIL}>`,
+      from: `"Evalio" <${config.NODEMAILER_MAIL}>`,
       to: user.email,
       subject: "Password Reset Link",
       text: `You requested to reset your password. This link is valid for 5 minutes:\n\n${config.FRONTEND_URL}/update-password/${token}`,
       html: `
         <p>You requested to reset your password.</p>
         <p>This link is valid for <strong>5 minutes</strong>:</p>
-        <a href="${config.FRONTEND_URL}/update-password/${token}">
+        <a href="${config.FRONTEND_URL}/reset-password/${token}">
           Reset Password
         </a>
       `,

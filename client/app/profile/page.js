@@ -53,7 +53,6 @@ export default function ProfilePage() {
 
         setProfile({
           name: data.name || "",
-          username: data.username || "",
           email: data.email || "",
           createdAt: data.createdAt || "",
           role: data.role || "",
@@ -217,7 +216,7 @@ export default function ProfilePage() {
                     id="email"
                     type="email"
                     value={profile.email}
-                    onChange={handleChange}
+                    disabled
                     className="w-full h-11 rounded-xl border border-gray-200 bg-gray-50/60 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all"
                     placeholder="you@chitkara.edu.in"
                     required
@@ -280,7 +279,7 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">Username</span>
                   <span className="font-medium text-gray-900">
-                    {profile.username || "-"}
+                    {profile.name || "-"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">

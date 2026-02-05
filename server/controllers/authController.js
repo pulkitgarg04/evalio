@@ -138,6 +138,7 @@ exports.resetPasswordMail = async (req, res) => {
         if (!user) return res.status(400).send({ error: 'Email is not registered with us' });
 
         await sendPasswordResetMail(user);
+        return res.status(200).send({ message: "Password reset link sent to your email" });
 
     } catch (err) {
         res.status(500).send(err);
