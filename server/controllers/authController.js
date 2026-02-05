@@ -59,10 +59,18 @@ exports.login = async (req, res) => {
         if (!isPasswordMatch) {
             return res.status(400).send({ error: "Invalid Credentials" });
         }
+
         const token = jwt.sign({ user_id: user._id }, config.JWT_TOKEN_SECRET, { expiresIn: '30d' });
 
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+          });
+
         res.status(200).send({
-            token: token,
+            token : token,
             username: user.name,
             user_id: user._id,
             role: user.role
@@ -72,6 +80,25 @@ exports.login = async (req, res) => {
         res.status(400).send({ error: err.message });
     }
 }
+
+exports.me = async (req, res) => {
+    try {
+        const user = await User.findById(req.userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({
+            username: user.name,
+            email: user.email,
+            role: user.role,
+            createdAt: user.createdAt,
+            study_year: user.study_year
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 
 exports.verifyMail = async (req, res) => {
     try {

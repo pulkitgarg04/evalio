@@ -23,3 +23,23 @@ exports.profileInfo = async (req,res) => {
         res.status(500).send(err);
     }
 }
+
+exports.updateProfile = async (req,res) => {
+    try {
+        const userId = req.userId;
+        const { name, study_year } = req.body;
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(400).send({ message: "User not found"});
+        }
+        
+        if(name) user.name = name;
+        if(study_year) user.study_year = study_year;
+        await user.save();
+        res.status(200).send({ message: "Profile updated successfully"});
+    } catch (err) {
+        res.status(500).send(err);
+    }
+}

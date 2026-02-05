@@ -28,6 +28,7 @@ export default function LoginPage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(formData)
       });
 
@@ -37,7 +38,6 @@ export default function LoginPage() {
         throw new Error(data.message || data.error || 'Login failed');
       }
 
-      localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify({
         username: data.username,
         _id: data.user_id,
