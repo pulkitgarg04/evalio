@@ -1,11 +1,14 @@
+"use client";
 import Link from 'next/link';
-import { 
-  Home, 
-  LayoutDashboard, 
-  BookOpen, 
-  Clock, 
-  Database, 
-  AlertCircle 
+import { useRouter } from 'next/navigation';
+import {
+  Home,
+  LayoutDashboard,
+  BookOpen,
+  Clock,
+  Database,
+  AlertCircle,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -19,12 +22,20 @@ const navItems = [
 ];
 
 export function Sidebar() {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    router.replace('/login');
+  };
+
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-16 md:w-20 flex flex-col items-center bg-white border-r border-gray-100 py-6">
       <nav className="flex-1 flex flex-col gap-6 w-full items-center">
         {navItems.map((item, index) => (
-          <Link 
-            key={index} 
+          <Link
+            key={index}
             href={item.href}
             className={cn(
               "p-2 rounded-xl text-gray-400 hover:text-[#0a3a30] hover:bg-emerald-50 transition-colors",
@@ -36,6 +47,16 @@ export function Sidebar() {
           </Link>
         ))}
       </nav>
+
+      <div className="flex flex-col gap-6 w-full items-center mt-auto">
+        <button
+          onClick={handleLogout}
+          className="p-2 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          title="Logout"
+        >
+          <LogOut size={20} strokeWidth={2} />
+        </button>
+      </div>
     </aside>
   );
 }
