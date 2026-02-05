@@ -11,8 +11,15 @@ const PORT = config.PORT;
 connectDB();
 
 app.use(cors({
-    origin: [process.env.FRONTEND_URL, 'http://localhost:3000', 'https://localhost:3000'],
-    credentials: true
+    origin: [
+        process.env.FRONTEND_URL,
+        'http://myevalio.tech',
+        'https://myevalio.tech',
+        'http://localhost:3000'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'userId']
 }));
 
 app.use(express.json());

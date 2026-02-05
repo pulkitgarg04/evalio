@@ -3,7 +3,7 @@ const sendVerificationMail = require('../utils/sendVerificationMail');
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const config = require('../config/config');
-const sendPasswordResetMail = require('../utils/sendPasswordRestMail');
+const sendPasswordResetMail = require('../utils/sendPasswordResetMail');
 
 exports.signup = async (req, res) => {
     try {
@@ -67,10 +67,10 @@ exports.login = async (req, res) => {
             secure: process.env.NODE_ENV === "production",
             sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
             maxAge: 30 * 24 * 60 * 60 * 1000,
-          });
+        });
 
         res.status(200).send({
-            token : token,
+            token: token,
             username: user.name,
             user_id: user._id,
             role: user.role
