@@ -34,7 +34,7 @@ export default function ProfilePage() {
         setError("");
 
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/user/profile`,
+          `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/users/profile`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -91,7 +91,7 @@ export default function ProfilePage() {
       };
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/user/profile`,
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/users/profile`,
         {
           method: "PUT",
           headers: {

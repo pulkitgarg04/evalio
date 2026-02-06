@@ -69,7 +69,29 @@ const useTestStore = create((set, get) => ({
     set({ currentQuestionIndex: index });
   },
 
-  completeTest: () => {
+  completeTest: async () => {
+    const { activeTest, questions, answers, timeLeft } = get();
+
+    const duration = activeTest?.duration || 30;
+    const timeTaken = (duration * 60) - timeLeft;
+
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/history`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          testId: activeTest?.id,
+          answers,
+          timeTaken
+        })
+      });
+    } catch (err) {
+      console.error('Failed to save test result:', err);
+    }
+
     set({ status: 'completed' });
   },
 

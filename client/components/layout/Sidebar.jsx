@@ -25,10 +25,19 @@ export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    router.replace('/login');
+  const handleLogout = async () => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      console.error('Logout failed:', err);
+    } finally {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      router.replace('/login');
+    }
   };
 
   return (

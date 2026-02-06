@@ -174,3 +174,16 @@ exports.resetPassowrd = async (req, res) => {
         return res.status(400).send(err);
     }
 }
+
+exports.logout = async (req, res) => {
+    try {
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        });
+        res.status(200).json({ message: "Logged out successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+}

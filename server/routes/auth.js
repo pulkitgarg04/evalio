@@ -11,5 +11,6 @@ router.get('/users', require('../middleware/isAdmin'), authController.getAllUser
 router.post('/resetPasswordToken', authController.resetPasswordMail);
 router.post('/resetPassword/:token', authController.resetPassowrd);
 router.get('/me', Auth, authController.me);
+router.post('/logout', authController.logout);
 
 module.exports = router;
