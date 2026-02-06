@@ -58,7 +58,17 @@ export function QuestionOptions() {
                 </button>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+            <div className="mt-8 pt-6 border-t border-gray-100 flex justify-between">
+                <button
+                    onClick={prevQuestion}
+                    disabled={currentQuestionIndex === 0}
+                    className={cn(
+                        "px-6 py-2.5 text-[#0a3a30] font-medium rounded hover:bg-emerald-50 transition-colors text-sm border border-[#0a3a30]",
+                        currentQuestionIndex === 0 && "opacity-50 cursor-not-allowed hover:bg-transparent"
+                    )}
+                >
+                    Previous
+                </button>
                 <button
                     onClick={nextQuestion}
                     className="px-8 py-2.5 bg-[#0a3a30] text-white font-bold rounded shadow-lg shadow-emerald-900/10 hover:bg-[#0a3a30]/90 transition-colors text-sm"

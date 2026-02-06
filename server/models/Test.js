@@ -17,10 +17,11 @@ const testSchema = new mongoose.Schema({
         default: 30
     },
     questions: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Question'
+        type: String
     }]
-}, { timestamps: true });
+}, {
+    timestamps: true
+});
 
 const Test = mongoose.model('Test', testSchema);
 

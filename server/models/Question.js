@@ -32,6 +32,14 @@ const questionSchema = new mongoose.Schema({
     correctAnswer: {
         type: String,
         required: true
+    },
+    topic: {
+        type: String,
+        required: false
+    },
+    subTopic: {
+        type: String,
+        required: false
     }
 });
 

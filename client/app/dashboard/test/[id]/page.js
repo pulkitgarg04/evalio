@@ -27,7 +27,7 @@ export default function TestPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-white w-full">
+    <div className="flex h-screen bg-white w-full">
       <div className="w-64 h-full border-r border-gray-200 flex-shrink-0 z-10">
         <QuestionPalette />
       </div>

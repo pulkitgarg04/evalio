@@ -1,8 +1,10 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, Plus, BookOpen, MoreHorizontal } from 'lucide-react';
 
 export default function TestManagementPage() {
+    const router = useRouter();
     const [tests, setTests] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -29,7 +31,10 @@ export default function TestManagementPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-[#0a3a30]">Test Management</h2>
-                <button className="bg-[#0a3a30] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#022c22] transition-colors flex items-center gap-2 shadow-lg shadow-emerald-900/10">
+                <button
+                    onClick={() => router.push('/admin/tests/add')}
+                    className="bg-[#0a3a30] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#022c22] transition-colors flex items-center gap-2 shadow-lg shadow-emerald-900/10"
+                >
                     <Plus size={16} /> Create Test
                 </button>
             </div>
@@ -66,7 +71,10 @@ export default function TestManagementPage() {
                     </div>
                 ))}
 
-                <button className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-6 text-gray-400 hover:border-[#0a3a30]/30 hover:text-[#0a3a30] hover:bg-emerald-50/10 transition-all min-h-[250px]">
+                <button
+                    onClick={() => router.push('/admin/tests/add')}
+                    className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-6 text-gray-400 hover:border-[#0a3a30]/30 hover:text-[#0a3a30] hover:bg-emerald-50/10 transition-all min-h-[250px]"
+                >
                     <Plus size={32} className="mb-2" />
                     <span className="font-bold">Create New Test</span>
                 </button>

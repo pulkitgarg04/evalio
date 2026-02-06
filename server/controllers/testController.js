@@ -24,7 +24,7 @@ exports.getTests = async (req, res) => {
         if (subject) {
             query.subject = subject;
         }
-        const tests = await Test.find(query).populate('questions');
+        const tests = await Test.find(query);
         res.json(tests);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -33,7 +33,7 @@ exports.getTests = async (req, res) => {
 
 exports.getTestById = async (req, res) => {
     try {
-        const test = await Test.findById(req.params.id).populate('questions');
+        const test = await Test.findById(req.params.id);
         if (!test) {
             return res.status(404).json({ message: 'Test not found' });
         }

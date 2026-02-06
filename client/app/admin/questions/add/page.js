@@ -22,6 +22,8 @@ export default function AddQuestionPage() {
         option4: '',
         option5: '',
         subject: '',
+        topic: '',
+        subTopic: '',
         correctAnswer: ''
     });
 
@@ -36,7 +38,9 @@ export default function AddQuestionPage() {
         option4: '',
         option5: '',
         correctAnswer: '',
-        difficulty: ''
+        difficulty: '',
+        topic: '',
+        subTopic: ''
     });
     const [bulkPreview, setBulkPreview] = useState([]);
     const [defaultBulkDifficulty, setDefaultBulkDifficulty] = useState('Easy');
@@ -103,6 +107,8 @@ export default function AddQuestionPage() {
                 question: formData.question,
                 options: options,
                 subject: selectedSubject,
+                topic: formData.topic,
+                subTopic: formData.subTopic,
                 correctAnswer: formData.correctAnswer
             };
 
@@ -130,6 +136,8 @@ export default function AddQuestionPage() {
                 option3: '',
                 option4: '',
                 option5: '',
+                topic: '',
+                subTopic: '',
                 correctAnswer: ''
             });
 
@@ -170,7 +178,9 @@ export default function AddQuestionPage() {
                     if (h.includes('option 4') || h.includes('option4') || h.includes('d)')) newMapping.option4 = header;
                     if (h.includes('option 5') || h.includes('option5') || h.includes('e)')) newMapping.option5 = header;
                     if (h.includes('answer') || h.includes('correct')) newMapping.correctAnswer = header;
-                    if (h.includes('difficulty')) newMapping.difficulty = header;
+                    if (h.includes('difficulty') || h.includes('level')) newMapping.difficulty = header;
+                    if (h.includes('topic') && !h.includes('sub')) newMapping.topic = header;
+                    if (h.includes('sub') || h.includes('sub_topic') || h.includes('sub topic')) newMapping.subTopic = header;
                 });
                 setColumnMapping(newMapping);
             }
@@ -213,7 +223,14 @@ export default function AddQuestionPage() {
                     ].filter(Boolean),
                     correctAnswer: getVal('correctAnswer'),
                     subject: selectedSubject,
-                    difficulty: columnMapping['difficulty'] ? (getVal('difficulty') || defaultBulkDifficulty) : defaultBulkDifficulty
+                    difficulty: (() => {
+                        const rawDiff = columnMapping['difficulty'] ? (getVal('difficulty') || defaultBulkDifficulty) : defaultBulkDifficulty;
+                        if (!rawDiff) return 'Easy';
+                        const lower = rawDiff.toLowerCase();
+                        return lower.charAt(0).toUpperCase() + lower.slice(1);
+                    })(),
+                    topic: columnMapping['topic'] ? getVal('topic') : '',
+                    subTopic: columnMapping['subTopic'] ? getVal('subTopic') : ''
                 };
             });
 
@@ -221,22 +238,36 @@ export default function AddQuestionPage() {
 
             if (validQuestions.length === 0) throw new Error("No valid questions found to upload.");
 
-            const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/questions/bulk`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'userId': user._id
-                },
-                body: JSON.stringify({ questions: validQuestions })
-            });
+            const BATCH_SIZE = 50;
+            let totalUploaded = 0;
+            const batches = [];
 
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || 'Failed to upload questions');
+            for (let i = 0; i < validQuestions.length; i += BATCH_SIZE) {
+                batches.push(validQuestions.slice(i, i + BATCH_SIZE));
             }
 
-            setSuccess(`Successfully uploaded ${data.count} questions!`);
+            for (let i = 0; i < batches.length; i++) {
+                const batch = batches[i];
+
+                const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/questions/bulk`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'userId': user._id
+                    },
+                    body: JSON.stringify({ questions: batch })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || `Failed to upload batch ${i + 1}`);
+                }
+
+                totalUploaded += (data.count || 0);
+            }
+
+            setSuccess(`Successfully uploaded ${totalUploaded} questions!`);
             setBulkFile(null);
             setParsedData([]);
             setBulkPreview([]);
@@ -320,6 +351,31 @@ export default function AddQuestionPage() {
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label htmlFor="topic" className="text-sm font-bold text-gray-700">Topic (Optional)</label>
+                                <input
+                                    id="topic"
+                                    type="text"
+                                    value={formData.topic}
+                                    onChange={handleChange}
+                                    placeholder="e.g. Database Normalization"
+                                    className="w-full h-12 rounded-xl border border-gray-200 px-4 transition-colors focus:border-[#0a3a30] focus:ring-1 focus:ring-[#0a3a30] outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="subTopic" className="text-sm font-bold text-gray-700">Sub Topic (Optional)</label>
+                                <input
+                                    id="subTopic"
+                                    type="text"
+                                    value={formData.subTopic}
+                                    onChange={handleChange}
+                                    placeholder="e.g. 3NF"
+                                    className="w-full h-12 rounded-xl border border-gray-200 px-4 transition-colors focus:border-[#0a3a30] focus:ring-1 focus:ring-[#0a3a30] outline-none"
+                                />
                             </div>
                         </div>
 
@@ -482,6 +538,6 @@ export default function AddQuestionPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
