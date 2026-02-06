@@ -11,7 +11,8 @@ export function QuestionPalette() {
     activeTest,
     timeLeft,
     decrementTimer,
-    completeTest
+    completeTest,
+    answers
   } = useTestStore();
 
   const formatTime = (seconds) => {
@@ -45,6 +46,7 @@ export function QuestionPalette() {
         <div>
           {questions.map((q, idx) => {
             const isCurrent = currentQuestionIndex === idx;
+            const isAnswered = answers[q.id] !== undefined;
 
             return (
               <button
@@ -57,14 +59,18 @@ export function QuestionPalette() {
               >
                 <div className="flex items-center gap-3">
                   <span className={cn(
-                    "text-xs font-mono w-5 h-5 flex items-center justify-center rounded border",
-                    isCurrent ? "border-[#0a3a30] text-[#0a3a30] bg-white" : "border-gray-200 text-gray-400"
+                    "text-xs font-mono w-5 h-5 flex items-center justify-center rounded border transition-all",
+                    isCurrent
+                      ? "border-[#0a3a30] text-[#0a3a30] bg-white ring-1 ring-[#0a3a30]"
+                      : isAnswered
+                        ? "bg-[#0a3a30] text-white border-[#0a3a30]"
+                        : "border-gray-200 text-gray-400"
                   )}>
-                    {idx + 1}
+                    {isAnswered && !isCurrent ? <CheckCircle size={10} /> : idx + 1}
                   </span>
                   <span className={cn(
                     "truncate max-w-[180px]",
-                    isCurrent ? "font-bold text-gray-900" : "text-gray-500 group-hover:text-gray-700"
+                    isCurrent ? "font-bold text-gray-900" : isAnswered ? "text-gray-800 font-medium" : "text-gray-500 group-hover:text-gray-700"
                   )}>
                     Question {idx + 1}
                   </span>

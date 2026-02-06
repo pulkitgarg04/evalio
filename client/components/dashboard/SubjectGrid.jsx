@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { MoreVertical, LayoutGrid, List, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function SubjectGrid() {
+export function SubjectGrid({ linkPrefix = '/dashboard/subject' }) {
     const [activeTab, setActiveTab] = React.useState('All');
     const [subjects, setSubjects] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
@@ -56,11 +56,7 @@ export function SubjectGrid() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
                 {subjects.map((subject) => {
                     return (
-                        <Link href={`/dashboard/subject/${subject._id}`} key={subject._id} className="group bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-emerald-900/5 hover:border-emerald-100 transition-all duration-300 flex flex-col h-full">
-                            <div className={cn("w-14 h-14 rounded-2xl mb-6 flex items-center justify-center bg-gray-50 text-gray-400 group-hover:bg-[#0a3a30] group-hover:text-white transition-colors duration-300")}>
-                                <span className="text-2xl font-bold">{subject.name.charAt(0)}</span>
-                            </div>
-
+                        <Link href={`${linkPrefix}/${subject._id}`} key={subject._id} className="group bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-emerald-900/5 hover:border-emerald-100 transition-all duration-300 flex flex-col h-full">
                             <div className="flex flex-col flex-1">
                                 <div className="flex justify-between items-start mb-2">
                                     <span className={cn("text-xs font-bold px-2 py-1 rounded bg-gray-100 text-gray-600")}>
