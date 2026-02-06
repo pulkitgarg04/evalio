@@ -205,8 +205,8 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-emerald-200/50">
             <p>© 2026 Evalio Inc. All rights reserved.</p>
             <div className="flex gap-6">
-              <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
-              <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
+              <Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              <Link href="/terms-conditions" className="hover:text-white transition-colors">Terms of Service</Link>
             </div>
           </div>
         </div>
