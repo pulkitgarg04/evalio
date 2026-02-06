@@ -19,9 +19,9 @@ const questionSchema = new mongoose.Schema({
         type: [String],
         validate: {
             validator: function (v) {
-                return v.length === 4;
+                return v.length >= 4 && v.length <= 5;
             },
-            message: 'Options array must contain exactly 4 items.'
+            message: 'Options array must contain 4 to 5 items.'
         },
         required: true
     },

@@ -19,7 +19,12 @@ exports.createTest = async (req, res) => {
 
 exports.getTests = async (req, res) => {
     try {
-        const tests = await Test.find().populate('questions');
+        const { subject } = req.query;
+        let query = {};
+        if (subject) {
+            query.subject = subject;
+        }
+        const tests = await Test.find(query).populate('questions');
         res.json(tests);
     } catch (error) {
         res.status(500).json({ error: error.message });

@@ -7,7 +7,8 @@ import {
     FileText,
     PlusCircle,
     Home,
-    LogOut
+    LogOut,
+    BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
@@ -17,6 +18,7 @@ const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
     { icon: FileText, label: "Tests", href: "/admin/tests" },
     { icon: Users, label: "Users", href: "/admin/users" },
+    { icon: BookOpen, label: "Subjects", href: "/admin/subjects" },
     { icon: PlusCircle, label: "Add Question", href: "/admin/questions/add" },
 ];
 

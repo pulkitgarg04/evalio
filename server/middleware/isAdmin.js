@@ -2,7 +2,7 @@ const User = require('../models/User');
 
 const isAdmin = async (req, res, next) => {
     try {
-        const { userId } = req.headers;
+        const userId = req.headers.userid || req.headers.userId;
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }

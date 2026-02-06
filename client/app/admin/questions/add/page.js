@@ -20,6 +20,7 @@ export default function AddQuestionPage() {
         option2: '',
         option3: '',
         option4: '',
+        option5: '',
         subject: '',
         correctAnswer: ''
     });
@@ -33,27 +34,29 @@ export default function AddQuestionPage() {
         option2: '',
         option3: '',
         option4: '',
+        option5: '',
         correctAnswer: '',
-        subject: '',
         difficulty: ''
     });
     const [bulkPreview, setBulkPreview] = useState([]);
+    const [defaultBulkDifficulty, setDefaultBulkDifficulty] = useState('Easy');
 
-
-    const generateQuestionId = () => {
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let result = 'Q-';
-        for (let i = 0; i < 8; i++) {
-            result += characters.charAt(Math.floor(Math.random() * characters.length));
-        }
-        return result;
-    };
+    const [subjects, setSubjects] = useState([]);
+    const [selectedSubject, setSelectedSubject] = useState('');
 
     useEffect(() => {
-        setFormData(prev => ({
-            ...prev,
-            questionId: generateQuestionId()
-        }));
+        const fetchSubjects = async () => {
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/subjects`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSubjects(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch subjects", err);
+            }
+        };
+        fetchSubjects();
     }, []);
 
     const handleChange = (e) => {
@@ -74,8 +77,12 @@ export default function AddQuestionPage() {
                 formData.option4.trim()
             ];
 
-            if (options.some(opt => !opt)) {
-                throw new Error("All 4 options are required");
+            if (formData.option5.trim()) {
+                options.push(formData.option5.trim());
+            }
+
+            if (options.length < 4) {
+                throw new Error("At least 4 options are required");
             }
 
             const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -87,12 +94,15 @@ export default function AddQuestionPage() {
                 throw new Error("Selected correct answer does not match any of the options. Please re-select the correct answer.");
             }
 
+            if (!selectedSubject) {
+                throw new Error("Please select a Subject first");
+            }
+
             const payload = {
-                questionId: formData.questionId,
                 difficulty: formData.difficulty,
                 question: formData.question,
                 options: options,
-                subject: formData.subject,
+                subject: selectedSubject,
                 correctAnswer: formData.correctAnswer
             };
 
@@ -113,14 +123,13 @@ export default function AddQuestionPage() {
 
             setSuccess('Question created successfully!');
             setFormData({
-                questionId: generateQuestionId(),
                 difficulty: 'Easy',
                 question: '',
                 option1: '',
                 option2: '',
                 option3: '',
                 option4: '',
-                subject: '',
+                option5: '',
                 correctAnswer: ''
             });
 
@@ -159,8 +168,8 @@ export default function AddQuestionPage() {
                     if (h.includes('option 2') || h.includes('option2') || h.includes('b)')) newMapping.option2 = header;
                     if (h.includes('option 3') || h.includes('option3') || h.includes('c)')) newMapping.option3 = header;
                     if (h.includes('option 4') || h.includes('option4') || h.includes('d)')) newMapping.option4 = header;
+                    if (h.includes('option 5') || h.includes('option5') || h.includes('e)')) newMapping.option5 = header;
                     if (h.includes('answer') || h.includes('correct')) newMapping.correctAnswer = header;
-                    if (h.includes('subject')) newMapping.subject = header;
                     if (h.includes('difficulty')) newMapping.difficulty = header;
                 });
                 setColumnMapping(newMapping);
@@ -175,7 +184,11 @@ export default function AddQuestionPage() {
         setSuccess('');
 
         try {
-            const requiredFields = ['question', 'option1', 'option2', 'option3', 'option4', 'correctAnswer', 'subject', 'difficulty'];
+            if (!selectedSubject) throw new Error("Please select a Subject first from the dropdown above.");
+
+
+
+            const requiredFields = ['question', 'option1', 'option2', 'option3', 'option4', 'correctAnswer'];
             for (const field of requiredFields) {
                 if (!columnMapping[field]) throw new Error(`Please map the "${field}" column.`);
             }
@@ -190,17 +203,17 @@ export default function AddQuestionPage() {
                 };
 
                 return {
-                    questionId: generateQuestionId(),
                     question: getVal('question'),
                     options: [
                         getVal('option1'),
                         getVal('option2'),
                         getVal('option3'),
-                        getVal('option4')
-                    ],
+                        getVal('option4'),
+                        getVal('option5')
+                    ].filter(Boolean),
                     correctAnswer: getVal('correctAnswer'),
-                    subject: getVal('subject'),
-                    difficulty: getVal('difficulty') || 'Easy'
+                    subject: selectedSubject,
+                    difficulty: columnMapping['difficulty'] ? (getVal('difficulty') || defaultBulkDifficulty) : defaultBulkDifficulty
                 };
             });
 
@@ -248,19 +261,42 @@ export default function AddQuestionPage() {
                 </div>
             </div>
 
-            <div className="flex bg-white p-1 rounded-2xl border border-gray-200 w-fit mb-6 shadow-sm">
-                <button
-                    onClick={() => setActiveTab('manual')}
-                    className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'manual' ? 'bg-[#0a3a30] text-white shadow-md' : 'text-gray-500 hover:text-gray-800'}`}
-                >
-                    <RefreshCw size={16} /> Manual Entry
-                </button>
-                <button
-                    onClick={() => setActiveTab('bulk')}
-                    className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'bulk' ? 'bg-[#0a3a30] text-white shadow-md' : 'text-gray-500 hover:text-gray-800'}`}
-                >
-                    <Upload size={16} /> Bulk Upload
-                </button>
+            <div className="mb-6 space-y-4">
+                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                    <label className="block text-sm font-bold text-[#0a3a30] mb-2">Select Subject for Questions</label>
+                    <div className="relative">
+                        <select
+                            value={selectedSubject}
+                            onChange={(e) => setSelectedSubject(e.target.value)}
+                            className="w-full h-12 rounded-xl border border-emerald-200 px-4 pr-10 text-[#0a3a30] font-medium bg-white focus:ring-2 focus:ring-[#0a3a30] focus:border-transparent outline-none appearance-none cursor-pointer"
+                        >
+                            <option value="">-- Choose a Subject --</option>
+                            {subjects.map(sub => (
+                                <option key={sub._id} value={sub.name}>{sub.name}</option>
+                            ))}
+                        </select>
+                        <AlertCircle className="absolute right-4 top-1/2 -translate-y-1/2 text-[#0a3a30]" size={20} />
+                    </div>
+                    <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                        <AlertCircle size={12} />
+                        All questions added (Manual or Bulk) will be assigned to this subject. ID will be generated automatically.
+                    </p>
+                </div>
+
+                <div className="flex bg-white p-1 rounded-2xl border border-gray-200 w-fit shadow-sm">
+                    <button
+                        onClick={() => setActiveTab('manual')}
+                        className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'manual' ? 'bg-[#0a3a30] text-white shadow-md' : 'text-gray-500 hover:text-gray-800'}`}
+                    >
+                        <RefreshCw size={16} /> Manual Entry
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('bulk')}
+                        className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'bulk' ? 'bg-[#0a3a30] text-white shadow-md' : 'text-gray-500 hover:text-gray-800'}`}
+                    >
+                        <Upload size={16} /> Bulk Upload
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
@@ -270,40 +306,6 @@ export default function AddQuestionPage() {
                 {activeTab === 'manual' && (
                     <form onSubmit={handleManualSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label htmlFor="questionId" className="text-sm font-bold text-gray-700">Question ID</label>
-                                <div className="relative">
-                                    <input
-                                        id="questionId"
-                                        type="text"
-                                        value={formData.questionId}
-                                        readOnly
-                                        className="w-full h-12 rounded-xl border border-gray-200 px-4 font-mono text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, questionId: generateQuestionId() })}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#0a3a30] font-bold hover:underline"
-                                    >
-                                        Regenerate
-                                    </button>
-                                </div>
-                                <p className="text-[10px] text-gray-400">Auto-generated unique ID</p>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label htmlFor="subject" className="text-sm font-bold text-gray-700">Subject</label>
-                                <input
-                                    id="subject"
-                                    type="text"
-                                    value={formData.subject}
-                                    onChange={handleChange}
-                                    placeholder="e.g. Mathematics, Operating Systems"
-                                    className="w-full h-12 rounded-xl border border-gray-200 px-4"
-                                    required
-                                />
-                            </div>
-
                             <div className="space-y-2">
                                 <label htmlFor="difficulty" className="text-sm font-bold text-gray-700">Difficulty</label>
                                 <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-200">
@@ -334,9 +336,9 @@ export default function AddQuestionPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <label className="text-sm font-bold text-gray-700">Options</label>
+                            <label className="text-sm font-bold text-gray-700">Options (Fill at least 4)</label>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {['option1', 'option2', 'option3', 'option4'].map((opt, idx) => (
+                                {['option1', 'option2', 'option3', 'option4', 'option5'].map((opt, idx) => (
                                     <div key={opt} className="relative">
                                         <div className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
                                             {String.fromCharCode(65 + idx)}
@@ -346,9 +348,9 @@ export default function AddQuestionPage() {
                                             type="text"
                                             value={formData[opt]}
                                             onChange={handleChange}
-                                            placeholder={`Option ${idx + 1}`}
+                                            placeholder={`Option ${idx + 1}${idx === 4 ? ' (Optional)' : ''}`}
                                             className={`w-full h-12 rounded-xl border px-4 pl-12 transition-colors ${formData.correctAnswer === formData[opt] && formData[opt] ? 'border-emerald-500 bg-emerald-50/30' : 'border-gray-200'}`}
-                                            required
+                                            required={idx < 4}
                                         />
                                         {formData[opt] && (
                                             <button
@@ -398,6 +400,25 @@ export default function AddQuestionPage() {
                                     Selected: {bulkFile.name}
                                 </div>
                             )}
+                        </div>
+
+                        <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <div>
+                                <h4 className="font-bold text-[#0a3a30] text-sm">Default Difficulty</h4>
+                                <p className="text-xs text-gray-500">Used if "Difficulty" column is not mapped or empty.</p>
+                            </div>
+                            <div className="flex bg-white p-1 rounded-lg border border-emerald-200">
+                                {['Easy', 'Medium', 'Hard'].map(level => (
+                                    <button
+                                        key={level}
+                                        type="button"
+                                        onClick={() => setDefaultBulkDifficulty(level)}
+                                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${defaultBulkDifficulty === level ? 'bg-[#0a3a30] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        {level}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {parsedData.length > 0 && (
