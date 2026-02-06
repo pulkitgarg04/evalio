@@ -12,7 +12,8 @@ export function QuestionPalette() {
     timeLeft,
     decrementTimer,
     completeTest,
-    answers
+    answers,
+    marked
   } = useTestStore();
 
   const formatTime = (seconds) => {
@@ -50,7 +51,7 @@ export function QuestionPalette() {
 
             return (
               <button
-                key={q.id}
+                key={`${q.id}-${idx}`}
                 onClick={() => jumpToQuestion(idx)}
                 className={cn(
                   "w-full text-left px-4 py-3 text-sm border-b border-gray-50 hover:bg-gray-50 transition-colors flex items-center justify-between group",
@@ -75,7 +76,10 @@ export function QuestionPalette() {
                     Question {idx + 1}
                   </span>
                 </div>
-                {isCurrent && <div className="w-1 h-4 rounded-full bg-[#0a3a30]"></div>}
+                <div className="flex items-center gap-2">
+                  {marked.includes(q.id) && <div className="w-2 h-2 rounded-full bg-emerald-400"></div>}
+                  {isCurrent && <div className="w-1 h-4 rounded-full bg-[#0a3a30]"></div>}
+                </div>
               </button>
             );
           })}

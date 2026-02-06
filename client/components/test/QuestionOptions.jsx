@@ -1,6 +1,5 @@
 import useTestStore from '@/store/useTestStore';
 import { cn } from '@/lib/utils';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 export function QuestionOptions() {
     const {
@@ -13,7 +12,7 @@ export function QuestionOptions() {
     } = useTestStore();
 
     const question = questions[currentQuestionIndex];
-    if (!question) return null;
+    if (!question || !question.options) return null;
 
     const selectedOption = answers[question.id];
 

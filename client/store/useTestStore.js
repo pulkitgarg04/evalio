@@ -5,9 +5,21 @@ const useTestStore = create((set, get) => ({
   activeTest: null,
   questions: [],
   answers: {},
+  marked: [],
   currentQuestionIndex: 0,
   status: 'idle',
   timeLeft: 0,
+
+  toggleMark: (questionId) => {
+    set((state) => {
+      const isMarked = state.marked.includes(questionId);
+      return {
+        marked: isMarked
+          ? state.marked.filter(id => id !== questionId)
+          : [...state.marked, questionId]
+      };
+    });
+  },
 
   startTest: async (testId) => {
     try {

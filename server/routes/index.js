@@ -8,6 +8,7 @@ const testRoutes = require('./tests');
 const questionRoutes = require('./questions');
 const resourceRoutes = require('./resources');
 const historyRoutes = require('./history');
+const contactRoutes = require('./contact');
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -16,5 +17,6 @@ router.use('/tests', testRoutes);
 router.use('/questions', questionRoutes);
 router.use('/resources', resourceRoutes);
 router.use('/history', historyRoutes);
+router.use('/contact', contactRoutes);
 
 module.exports = router;

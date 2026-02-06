@@ -18,7 +18,7 @@ const navItems = [
   { icon: BookOpen, label: "Courses", href: "/dashboard/subject" },
   { icon: Clock, label: "History", href: "/dashboard/history" },
   { icon: Database, label: "Resources", href: "/dashboard/resources" },
-  { icon: AlertCircle, label: "Help", href: "/help" },
+  { icon: AlertCircle, label: "Help", href: "/dashboard/help" },
 ];
 
 export function Sidebar() {

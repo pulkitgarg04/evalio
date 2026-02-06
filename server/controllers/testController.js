@@ -1,3 +1,4 @@
+const Question = require('../models/Question');
 const Test = require('../models/Test');
 
 exports.createTest = async (req, res) => {
@@ -37,7 +38,14 @@ exports.getTestById = async (req, res) => {
         if (!test) {
             return res.status(404).json({ message: 'Test not found' });
         }
-        res.json(test);
+
+        const questions = await Question.find({ questionId: { $in: test.questions } });
+        const orderedQuestions = test.questions.map(id => questions.find(q => q.questionId === id)).filter(Boolean);
+
+        const testObj = test.toObject();
+        testObj.questions = orderedQuestions;
+
+        res.json(testObj);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
