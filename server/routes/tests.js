@@ -5,5 +5,6 @@ const isAdmin = require('../middleware/isAdmin');
 
 router.post('/', isAdmin, testController.createTest);
 router.get('/', testController.getTests);
+router.get('/:id', testController.getTestById);
 
 module.exports = router;

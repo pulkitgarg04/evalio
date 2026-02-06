@@ -1,10 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
-import { premadeTests, categories } from '@/lib/mockData';
 import { MoreVertical, LayoutGrid, List, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function CourseGrid() {
+export function SubjectGrid() {
     const [activeTab, setActiveTab] = React.useState('All');
     const [subjects, setSubjects] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
@@ -14,13 +13,17 @@ export function CourseGrid() {
     React.useEffect(() => {
         const fetchData = async () => {
             try {
-                const userStr = localStorage.getItem('user');
                 let year = 1;
-                if (userStr) {
-                    const user = JSON.parse(userStr);
-                    year = user.study_year || 1;
+
+                const userRes = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/me`, {
+                    credentials: 'include'
+                });
+
+                if (userRes.ok) {
+                    const userData = await userRes.json();
+                    year = userData.study_year || 1;
                     setUserYear(year);
-                    setUserName(user.name || 'Student');
+                    setUserName(userData.username || 'Student');
                 }
 
                 const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/subjects?year=${year}`);
@@ -70,7 +73,7 @@ export function CourseGrid() {
                                 </h3>
 
                                 <p className="text-sm text-gray-500 mb-6">
-                                    {subject.questionCount > 0 ? `${subject.questionCount} Questions Bank` : 'No questions yet'}
+                                    {subject.testCount > 0 ? `${subject.testCount} Tests Available` : 'No tests yet'}
                                 </p>
 
                                 <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between text-sm font-medium">

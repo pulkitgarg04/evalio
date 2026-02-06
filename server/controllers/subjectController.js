@@ -26,12 +26,37 @@ exports.createSubject = async (req, res) => {
 exports.getAllSubjects = async (req, res) => {
     try {
         const { year } = req.query;
-        let query = {};
+        let pipeline = [];
+
         if (year) {
-            query.year = year;
+            pipeline.push({ $match: { year: parseInt(year) } });
         }
 
-        const subjects = await Subject.find(query).sort({ name: 1 });
+        pipeline.push(
+            {
+                $lookup: {
+                    from: 'tests',
+                    localField: 'name',
+                    foreignField: 'subject',
+                    as: 'tests'
+                }
+            },
+            {
+                $addFields: {
+                    testCount: { $size: '$tests' }
+                }
+            },
+            {
+                $project: {
+                    tests: 0
+                }
+            },
+            {
+                $sort: { name: 1 }
+            }
+        );
+
+        const subjects = await Subject.aggregate(pipeline);
         res.status(200).json(subjects);
     } catch (error) {
         console.error('Error fetching subjects:', error);

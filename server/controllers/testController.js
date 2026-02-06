@@ -30,3 +30,15 @@ exports.getTests = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+exports.getTestById = async (req, res) => {
+    try {
+        const test = await Test.findById(req.params.id).populate('questions');
+        if (!test) {
+            return res.status(404).json({ message: 'Test not found' });
+        }
+        res.json(test);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

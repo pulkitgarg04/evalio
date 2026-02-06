@@ -8,19 +8,38 @@ const useTestStore = create((set, get) => ({
   currentQuestionIndex: 0,
   status: 'idle',
   timeLeft: 0,
-  
-  startTest: (testId, customSettings = null) => {
-    const questions = [...mockQuestions].sort(() => 0.5 - Math.random()).slice(0, 5);
-    const test = premadeTests.find(t => t.id === testId) || { ...customSettings, id: 'custom' };
-    
-    set({
-      activeTest: test,
-      questions: questions,
-      answers: {},
-      currentQuestionIndex: 0,
-      status: 'running',
-      timeLeft: test.duration * 60
-    });
+
+  startTest: async (testId) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/tests/${testId}`);
+      if (!res.ok) throw new Error("Failed to fetch test");
+      const testData = await res.json();
+
+      const mappedQuestions = testData.questions.map(q => ({
+        id: q._id,
+        text: q.question,
+        options: q.options,
+        difficulty: q.difficulty,
+        correctAnswer: q.correctAnswer
+      }));
+
+      set({
+        activeTest: {
+          id: testData._id,
+          title: testData.title,
+          duration: testData.duration,
+          subject: testData.subject
+        },
+        questions: mappedQuestions,
+        answers: {},
+        currentQuestionIndex: 0,
+        status: 'running',
+        timeLeft: (testData.duration || 30) * 60
+      });
+
+    } catch (err) {
+      console.error(err);
+    }
   },
 
   selectAnswer: (questionId, optionIndex) => {
@@ -53,7 +72,7 @@ const useTestStore = create((set, get) => ({
   completeTest: () => {
     set({ status: 'completed' });
   },
-  
+
   resetTest: () => {
     set({
       activeTest: null,
