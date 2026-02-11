@@ -39,7 +39,9 @@ const testAttemptSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-}, { timestamps: true });
+}, {
+    timestamps: true
+});
 
 const TestAttempt = mongoose.model('TestAttempt', testAttemptSchema);
 

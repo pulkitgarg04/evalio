@@ -1,5 +1,6 @@
 const TestAttempt = require('../models/TestAttempt');
 const Test = require('../models/Test');
+const TestSession = require('../models/TestSession');
 
 exports.submitTestResult = async (req, res) => {
     try {
@@ -33,6 +34,19 @@ exports.submitTestResult = async (req, res) => {
 
         const totalQuestions = test.questions.length;
         const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+
+        const session = await TestSession.findOne({
+            user: userId,
+            test: testId,
+            status: 'active'
+        });
+
+        if (session) {
+            session.status = 'completed';
+            await session.save();
+        } else {
+            return res.status(400).json({ message: "No active test session found. Submission rejected." });
+        }
 
         const testAttempt = new TestAttempt({
             user: userId,

@@ -8,7 +8,8 @@ export function QuestionOptions() {
         selectAnswer,
         answers,
         nextQuestion,
-        prevQuestion
+        prevQuestion,
+        completeTest
     } = useTestStore();
 
     const question = questions[currentQuestionIndex];
@@ -69,7 +70,13 @@ export function QuestionOptions() {
                     Previous
                 </button>
                 <button
-                    onClick={nextQuestion}
+                    onClick={() => {
+                        if (currentQuestionIndex === questions.length - 1) {
+                            completeTest();
+                        } else {
+                            nextQuestion();
+                        }
+                    }}
                     className="px-8 py-2.5 bg-[#0a3a30] text-white font-bold rounded shadow-lg shadow-emerald-900/10 hover:bg-[#0a3a30]/90 transition-colors text-sm"
                 >
                     {currentQuestionIndex === questions.length - 1 ? 'Finish Test' : 'Next'}

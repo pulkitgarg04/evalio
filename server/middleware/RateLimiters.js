@@ -13,4 +13,4 @@ const SignupLimiter = rateLimit({
     message: "Too many signup attempts, please try again after a minute"
 })
 
-module.exports = {LoginLimiter,SignupLimiter};
+module.exports = { LoginLimiter, SignupLimiter };

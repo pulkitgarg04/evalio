@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import { mockQuestions, premadeTests } from '../lib/mockData';
 
 const useTestStore = create((set, get) => ({
   activeTest: null,
   questions: [],
   answers: {},
   marked: [],
+  topicAnalysis: [],
+  difficultyAnalysis: [],
   currentQuestionIndex: 0,
   status: 'idle',
   timeLeft: 0,
@@ -21,46 +22,184 @@ const useTestStore = create((set, get) => ({
     });
   },
 
-  startTest: async (testId) => {
+  loadSession: async (sessionId) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/tests/${testId}`);
-      if (!res.ok) throw new Error("Failed to fetch test");
-      const testData = await res.json();
+      const sessionRes = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/sessions/${sessionId}`, {
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
 
-      const mappedQuestions = testData.questions.map(q => ({
-        id: q._id,
-        text: q.question,
-        options: q.options,
-        difficulty: q.difficulty,
-        correctAnswer: q.correctAnswer
-      }));
+      if (!sessionRes.ok) throw new Error("Failed to load session");
+      const sessionData = await sessionRes.json();
+
+      const testId = sessionData.session.test;
+      const testRes = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/tests/${testId}`);
+      if (!testRes.ok) throw new Error("Failed to fetch test details");
+      const testData = await testRes.json();
+
+      let mappedQuestions = [];
+      let initialAnswers = {};
+
+      if (sessionData.resultAnalysis) {
+        mappedQuestions = sessionData.resultAnalysis.map(q => ({
+          id: q.id,
+          text: q.text,
+          options: q.options,
+          difficulty: q.difficulty,
+          correctAnswer: q.correctAnswer,
+          topic: q.topic,
+          subTopic: q.subTopic
+        }));
+
+        sessionData.resultAnalysis.forEach(q => {
+          if (q.selectedOption !== undefined && q.selectedOption !== null) {
+            initialAnswers[q.id] = Number(q.selectedOption);
+          }
+        });
+      } else {
+        mappedQuestions = testData.questions.map(q => ({
+          id: q._id,
+          text: q.question,
+          options: q.options,
+          difficulty: q.difficulty,
+        }));
+      }
 
       set({
         activeTest: {
           id: testData._id,
           title: testData.title,
           duration: testData.duration,
-          subject: testData.subject
+          subject: testData.subject,
+          sessionId: sessionId
         },
         questions: mappedQuestions,
-        answers: {},
+        answers: initialAnswers,
+        topicAnalysis: sessionData.topicAnalysis || [],
+        difficultyAnalysis: sessionData.difficultyAnalysis || [],
         currentQuestionIndex: 0,
-        status: 'running',
-        timeLeft: (testData.duration || 30) * 60
+        status: 'completed',
+        timeLeft: 0,
+        error: null
       });
 
     } catch (err) {
       console.error(err);
+      set({ status: 'error', error: err.message });
     }
   },
 
-  selectAnswer: (questionId, optionIndex) => {
+  startTest: async (testId) => {
+    try {
+      const startRes = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/tests/${testId}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+
+      if (!startRes.ok) {
+        const errData = await startRes.json();
+        throw new Error(errData.message || "Failed to start test session");
+      }
+
+      const startData = await startRes.json();
+      const sessionId = startData.sessionId;
+
+      const testRes = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/tests/${testId}`);
+      if (!testRes.ok) throw new Error("Failed to fetch test details");
+      const testData = await testRes.json();
+
+      let mappedQuestions = testData.questions.map(q => ({
+        id: q._id,
+        text: q.question,
+        options: q.options,
+        difficulty: q.difficulty,
+      }));
+
+      const sessionRes = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/sessions/${sessionId}`, {
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+
+      let initialAnswers = {};
+      let remainingTime = (testData.duration || 30) * 60;
+      let initialStatus = 'running';
+
+      if (sessionRes.ok) {
+        const sessionData = await sessionRes.json();
+        if (sessionData.session.status === 'SUBMITTED' || sessionData.session.status === 'EXPIRED') {
+          initialStatus = 'completed';
+        }
+
+        remainingTime = sessionData.remainingTime;
+
+        if (sessionData.resultAnalysis) {
+          mappedQuestions = sessionData.resultAnalysis.map(q => ({
+            id: q.id,
+            text: q.text,
+            options: q.options,
+            difficulty: q.difficulty,
+            correctAnswer: q.correctAnswer
+          }));
+
+          sessionData.resultAnalysis.forEach(q => {
+            if (q.selectedOption !== undefined && q.selectedOption !== null) {
+              initialAnswers[q.id] = Number(q.selectedOption);
+            }
+          });
+        } else if (sessionData.answers) {
+          sessionData.answers.forEach(ans => {
+            initialAnswers[ans.question] = Number(ans.selectedOption);
+          });
+        }
+      }
+
+      set({
+        activeTest: {
+          id: testData._id,
+          title: testData.title,
+          duration: testData.duration,
+          subject: testData.subject,
+          sessionId: sessionId
+        },
+        questions: mappedQuestions,
+        answers: initialAnswers,
+        currentQuestionIndex: 0,
+        status: initialStatus,
+        timeLeft: remainingTime,
+        error: null
+      });
+
+    } catch (err) {
+      console.error(err);
+      set({ status: 'error', error: err.message });
+    }
+  },
+
+  selectAnswer: async (questionId, optionIndex) => {
     set((state) => ({
       answers: {
         ...state.answers,
         [questionId]: optionIndex
       }
     }));
+
+    const { activeTest } = get();
+    if (!activeTest?.sessionId) return;
+
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/sessions/${activeTest.sessionId}/answer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          questionId,
+          selectedOption: optionIndex
+        })
+      });
+    } catch (err) {
+      console.error("Failed to autosave answer:", err);
+    }
   },
 
   nextQuestion: () => {
@@ -82,39 +221,45 @@ const useTestStore = create((set, get) => ({
   },
 
   completeTest: async () => {
-    const { activeTest, questions, answers, timeLeft } = get();
-
-    const duration = activeTest?.duration || 30;
-    const timeTaken = (duration * 60) - timeLeft;
+    const { activeTest } = get();
+    if (!activeTest?.sessionId) return;
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/history`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/sessions/${activeTest.sessionId}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
-        body: JSON.stringify({
-          testId: activeTest?.id,
-          answers,
-          timeTaken
-        })
+        credentials: 'include'
       });
-    } catch (err) {
-      console.error('Failed to save test result:', err);
-    }
 
-    set({ status: 'completed' });
+      if (!res.ok) {
+        throw new Error("Failed to submit test");
+      }
+
+      sessionStorage.removeItem(`test_session_${activeTest.id}`);
+
+      set({ status: 'completed' });
+    } catch (err) {
+      console.error('Failed to submit test:', err);
+    }
   },
 
   resetTest: () => {
+    const { activeTest } = get();
+    if (activeTest?.id) {
+      sessionStorage.removeItem(`test_session_${activeTest.id}`);
+    }
     set({
       activeTest: null,
       questions: [],
       answers: {},
+      topicAnalysis: [],
+      difficultyAnalysis: [],
       currentQuestionIndex: 0,
       status: 'idle',
-      timeLeft: 0
+      timeLeft: 0,
+      error: null
     });
   },
 
