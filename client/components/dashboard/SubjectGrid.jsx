@@ -41,7 +41,41 @@ export function SubjectGrid({ linkPrefix = '/dashboard/subject' }) {
     }, []);
 
     if (loading) {
-        return <div className="p-8 text-center text-gray-500">Loading courses...</div>;
+        return (
+            <div className="flex flex-col h-full bg-transparent animate-pulse">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div className="space-y-3">
+                        <div className="h-9 w-48 rounded-xl bg-gray-200" />
+                        <div className="h-5 w-72 rounded-lg bg-gray-100" />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                        <div
+                            key={index}
+                            className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full"
+                        >
+                            <div className="flex flex-col flex-1">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="h-6 w-16 rounded-full bg-gray-100" />
+                                </div>
+
+                                <div className="space-y-3 mb-6">
+                                    <div className="h-7 w-3/4 rounded-xl bg-gray-200" />
+                                    <div className="h-4 w-1/2 rounded-lg bg-gray-100" />
+                                </div>
+
+                                <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
+                                    <div className="h-4 w-24 rounded-lg bg-gray-100" />
+                                    <div className="w-8 h-8 rounded-full bg-gray-100" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
     }
 
     return (

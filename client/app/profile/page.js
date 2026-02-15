@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   User,
   Mail,
   Calendar,
-  Shield,
   GraduationCap,
   Save,
   Loader2,
@@ -136,6 +136,15 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10 font-sans">
       <div className="w-full max-w-3xl bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50 mb-6 cursor-pointer"
+        >
+          <ArrowLeft size={16} />
+          Back
+        </button>
+
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
             <div className="h-14 w-14 rounded-2xl bg-[#0a3a30] text-white flex items-center justify-center text-2xl font-bold">
@@ -150,10 +159,6 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex flex-col items-end gap-1 text-xs sm:text-sm">
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 font-semibold">
-              <Shield size={14} />
-              <span className="capitalize">{profile.role || "student"}</span>
-            </div>
             <div className="flex items-center gap-2 text-gray-400">
               <Calendar size={14} />
               <span>Joined: {formattedDate}</span>
@@ -318,4 +323,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

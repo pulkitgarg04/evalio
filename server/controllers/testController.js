@@ -1,6 +1,7 @@
 const Question = require('../models/Question');
 const Test = require('../models/Test');
 const TestSession = require('../models/TestSession');
+const { ensureSessionState, finalizeSession } = require('../utils/sessionLifecycle');
 
 exports.createTest = async (req, res) => {
     try {
@@ -72,6 +73,7 @@ exports.startTestSession = async (req, res) => {
             const remaining = new Date(existingSession.endTime).getTime() - Date.now();
 
             if (remaining > 0) {
+                await ensureSessionState(existingSession);
                 return res.status(200).json({
                     message: "Resuming test session",
                     sessionId: existingSession._id,
@@ -80,8 +82,7 @@ exports.startTestSession = async (req, res) => {
                     remainingTime: Math.floor(remaining / 1000)
                 });
             } else {
-                existingSession.status = 'EXPIRED';
-                await existingSession.save();
+                await finalizeSession(existingSession, { status: 'EXPIRED' });
             }
         }
 
@@ -96,6 +97,7 @@ exports.startTestSession = async (req, res) => {
         });
 
         await newSession.save();
+        await ensureSessionState(newSession);
 
         res.status(201).json({
             message: "Test session started",
@@ -118,7 +120,7 @@ exports.getTestSession = async (req, res) => {
         const session = await TestSession.findOne({
             user: userId,
             test: testId,
-            status: 'active'
+            status: 'IN_PROGRESS'
         });
 
         if (!session) {

@@ -9,7 +9,6 @@ const Auth = (req, res, next) => {
     }
 
     jwt.verify(token,config.JWT_TOKEN_SECRET,(err,decoded) => {
-
         if (err) {
             return res.status(401).json({ message: "Invalid token" });
         }

@@ -12,7 +12,7 @@ const testAnswerSchema = new mongoose.Schema({
         required: true
     },
     selectedOption: {
-        type: String,
+        type: Number,
         required: true
     }
 }, {

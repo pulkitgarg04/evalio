@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
     History,
     Calendar,
@@ -17,20 +18,29 @@ export default function HistoryPage() {
     const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const pageSize = 10;
 
     const fetchHistory = async (page = 1) => {
         try {
             setLoading(true);
+            setError('');
             const res = await fetch(
-                `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/history?page=${page}&limit=10`,
+                `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/sessions/history`,
                 { credentials: 'include' }
             );
 
             if (!res.ok) throw new Error('Failed to fetch history');
 
             const data = await res.json();
-            setHistory(data.attempts);
-            setPagination(data.pagination);
+            const start = (page - 1) * pageSize;
+            const pagedData = data.slice(start, start + pageSize);
+
+            setHistory(pagedData);
+            setPagination({
+                total: data.length,
+                page,
+                pages: Math.max(1, Math.ceil(data.length / pageSize))
+            });
         } catch (err) {
             setError(err.message);
         } finally {
@@ -89,72 +99,89 @@ export default function HistoryPage() {
                         <div className="col-span-5">Test</div>
                         <div className="col-span-2 text-center">Score</div>
                         <div className="col-span-2 text-center">Questions</div>
-                        <div className="col-span-3 text-right">Date</div>
+                        <div className="col-span-2 text-right">Date</div>
+                        <div className="col-span-1 text-right">Action</div>
                     </div>
 
                     <div className="divide-y divide-gray-100">
-                        {history.map((attempt) => (
-                            <div
-                                key={attempt._id}
-                                className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-gray-50 transition-colors"
-                            >
-                                <div className="col-span-5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
-                                            <History className="text-[#0a3a30]" size={18} />
+                        {history.map((attempt) => {
+                            const accuracy = attempt.totalQuestions > 0
+                                ? Math.round((attempt.correctAnswers / attempt.totalQuestions) * 100)
+                                : 0;
+                            const completedAt = attempt.submittedAt || attempt.updatedAt || attempt.createdAt;
+
+                            return (
+                                <div
+                                    key={attempt._id}
+                                    className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-gray-50 transition-colors"
+                                >
+                                    <div className="col-span-5">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                                                <History className="text-[#0a3a30]" size={18} />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-gray-800">
+                                                    {attempt.test?.title || 'Unknown Test'}
+                                                </p>
+                                                <p className="text-sm text-gray-500 capitalize">
+                                                    {attempt.test?.subject || 'Unknown Subject'}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-semibold text-gray-800">
-                                                {attempt.test?.title || 'Unknown Test'}
-                                            </p>
-                                            <p className="text-sm text-gray-500 capitalize">
-                                                {attempt.test?.subject || 'Unknown Subject'}
-                                            </p>
+                                    </div>
+
+                                    <div className="col-span-2 flex justify-center">
+                                        <div className={`px-3 py-1.5 rounded-full text-sm font-bold ${accuracy >= 70
+                                            ? 'bg-emerald-100 text-emerald-700'
+                                            : accuracy >= 50
+                                                ? 'bg-amber-100 text-amber-700'
+                                                : 'bg-red-100 text-red-700'
+                                            }`}>
+                                            {accuracy}%
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="col-span-2 flex justify-center">
-                                    <div className={`px-3 py-1.5 rounded-full text-sm font-bold ${attempt.score >= 70
-                                        ? 'bg-emerald-100 text-emerald-700'
-                                        : attempt.score >= 50
-                                            ? 'bg-amber-100 text-amber-700'
-                                            : 'bg-red-100 text-red-700'
-                                        }`}>
-                                        {attempt.score}%
-                                    </div>
-                                </div>
-
-                                <div className="col-span-2 text-center">
-                                    <span className="text-gray-700 font-medium">
-                                        {attempt.correctAnswers}/{attempt.totalQuestions}
-                                    </span>
-                                    <span className="text-gray-400 text-sm ml-1">correct</span>
-                                </div>
-
-                                <div className="col-span-3 text-right">
-                                    <div className="flex items-center justify-end gap-2 text-gray-500">
-                                        <Calendar size={14} />
-                                        <span className="text-sm">
-                                            {new Date(attempt.completedAt).toLocaleDateString('en-US', {
-                                                month: 'short',
-                                                day: 'numeric',
-                                                year: 'numeric'
-                                            })}
+                                    <div className="col-span-2 text-center">
+                                        <span className="text-gray-700 font-medium">
+                                            {attempt.correctAnswers}/{attempt.totalQuestions}
                                         </span>
+                                        <span className="text-gray-400 text-sm ml-1">correct</span>
                                     </div>
-                                    <div className="flex items-center justify-end gap-2 text-gray-400 mt-1">
-                                        <Clock size={12} />
-                                        <span className="text-xs">
-                                            {new Date(attempt.completedAt).toLocaleTimeString('en-US', {
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })}
-                                        </span>
+
+                                    <div className="col-span-2 text-right">
+                                        <div className="flex items-center justify-end gap-2 text-gray-500">
+                                            <Calendar size={14} />
+                                            <span className="text-sm">
+                                                {new Date(completedAt).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    year: 'numeric'
+                                                })}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-end gap-2 text-gray-400 mt-1">
+                                            <Clock size={12} />
+                                            <span className="text-xs">
+                                                {new Date(completedAt).toLocaleTimeString('en-US', {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="col-span-1 flex justify-end">
+                                        <Link
+                                            href={attempt.reviewPath || `/dashboard/review/${attempt._id}`}
+                                            className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-[#0a3a30] hover:bg-emerald-50 hover:border-emerald-200 transition-colors"
+                                        >
+                                            Review
+                                        </Link>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {pagination.pages > 1 && (

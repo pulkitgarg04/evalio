@@ -1,29 +1,29 @@
 const mongoose = require("mongoose");
-const bcrypt = require('bcrypt');
 const validator = require('validator');
 
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
+        required: [true, 'Name is required'],
         trim: true,
     },
     email: {
         type: String,
-        required: true,
+        required: [true, 'Email is required'],
         unique: true,
         trim: true,
+        lowercase: true,
         validate(value) {
             if (!validator.isEmail(value)) {
-                throw new Error('please provide valid email');
+                throw new Error('Please provide a valid email');
             }
         }
     },
     password: {
         type: String,
-        required: true,
+        required: [true, 'Password is required'],
         trim: true,
-        minLength: 8,
+        minlength: [8, 'Password must be at least 8 characters long'],
         validate(value) {
             if (!validator.isStrongPassword(value, {
                 minLength: 8,
@@ -52,16 +52,11 @@ const userSchema = new mongoose.Schema({
     },
     study_year: {
         type: Number,
+        required: [true, 'Study year is required'],
+        min: [1, 'Study year must be at least 1'],
         default: 1
     },
 })
-
-userSchema.pre('save', async function () {
-    const user = this;
-    if (user.isModified('password')) {
-        user.password = await bcrypt.hash(user.password, 8);
-    }
-});
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;

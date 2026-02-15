@@ -1,4 +1,5 @@
 const Subject = require('../models/Subject');
+const Test = require('../models/Test');
 
 exports.createSubject = async (req, res) => {
     try {
@@ -26,38 +27,22 @@ exports.createSubject = async (req, res) => {
 exports.getAllSubjects = async (req, res) => {
     try {
         const { year } = req.query;
-        let pipeline = [];
+        const query = {};
 
         if (year) {
-            pipeline.push({ $match: { year: parseInt(year) } });
+            query.year = parseInt(year, 10);
         }
 
-        pipeline.push(
-            {
-                $lookup: {
-                    from: 'tests',
-                    localField: 'name',
-                    foreignField: 'subject',
-                    as: 'tests'
-                }
-            },
-            {
-                $addFields: {
-                    testCount: { $size: '$tests' }
-                }
-            },
-            {
-                $project: {
-                    tests: 0
-                }
-            },
-            {
-                $sort: { name: 1 }
-            }
+        const subjects = await Subject.find(query).sort({ name: 1 }).lean();
+
+        const subjectsWithCounts = await Promise.all(
+            subjects.map(async (subject) => ({
+                ...subject,
+                testCount: await Test.countDocuments({ subject: subject.name })
+            }))
         );
 
-        const subjects = await Subject.aggregate(pipeline);
-        res.status(200).json(subjects);
+        res.status(200).json(subjectsWithCounts);
     } catch (error) {
         console.error('Error fetching subjects:', error);
         res.status(500).json({ error: 'Server error' });

@@ -26,7 +26,31 @@ export function HistoryList() {
         fetchHistory();
     }, []);
 
-    if (loading) return <div className="animate-pulse h-20 bg-gray-100 rounded-xl"></div>;
+    if (loading) {
+        return (
+            <div className="space-y-4 animate-pulse">
+                <div className="h-7 w-40 rounded-xl bg-gray-200" />
+                <div className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                        <div
+                            key={index}
+                            className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-gray-100" />
+                                <div className="space-y-2">
+                                    <div className="h-5 w-40 rounded-lg bg-gray-200" />
+                                    <div className="h-4 w-56 rounded-lg bg-gray-100" />
+                                </div>
+                            </div>
+
+                            <div className="h-4 w-16 rounded-lg bg-gray-100" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     if (history.length === 0) {
         return (

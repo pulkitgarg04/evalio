@@ -8,13 +8,13 @@ export default function ReviewPage() {
     const { sessionId } = useParams();
     const {
         status,
-        loadSession,
+        loadReviewSession,
         error
     } = useTestStore();
 
     useEffect(() => {
-        loadSession(sessionId);
-    }, [sessionId, loadSession]);
+        loadReviewSession(sessionId);
+    }, [sessionId, loadReviewSession]);
 
     if (status === 'error') {
         return (

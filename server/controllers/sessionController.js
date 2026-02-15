@@ -1,13 +1,64 @@
 const TestSession = require('../models/TestSession');
-const TestAnswer = require('../models/TestAnswer');
-const Test = require('../models/Test');
-const Question = require('../models/Question');
+const {
+    buildQuestionAnalysis,
+    ensureSessionState,
+    finalizeSession,
+    getAnswerMapForSession,
+    getOrderedQuestionsForTest,
+    updateSessionState,
+    upsertAnswerInSessionState
+} = require('../utils/sessionLifecycle');
+
+async function finalizeIfNeeded(session) {
+    if (!session || session.status !== 'IN_PROGRESS') {
+        return session;
+    }
+
+    const now = Date.now();
+    const testExpired = new Date(session.endTime).getTime() <= now;
+
+    if (testExpired) {
+        await finalizeSession(session, { status: 'EXPIRED' });
+        return TestSession.findById(session._id);
+    }
+
+    return session;
+}
+
+function buildCompletedSessionPayload(session, answerMap, state, analysis) {
+    const remaining = new Date(session.endTime).getTime() - Date.now();
+    const startedAtMs = new Date(session.startTime).getTime();
+    const endedAtMs = new Date(session.submittedAt || session.endTime).getTime();
+    const timeTakenSeconds = Math.max(0, Math.floor((endedAtMs - startedAtMs) / 1000));
+
+    return {
+        session,
+        remainingTime: Math.max(0, Math.floor(remaining / 1000)),
+        timeTakenSeconds,
+        answers: Object.entries(answerMap).map(([question, selectedOption]) => ({
+            question,
+            selectedOption
+        })),
+        state: state ? {
+            marked: state.marked,
+            currentQuestionIndex: state.currentQuestionIndex,
+            fullscreenExitedAt: state.fullscreenExitedAt,
+            fullscreenDeadlineAt: state.fullscreenDeadlineAt,
+            fullscreenWarnings: state.fullscreenWarnings
+        } : null,
+        resultAnalysis: analysis.resultAnalysis,
+        topicAnalysis: analysis.topicAnalysis,
+        difficultyAnalysis: analysis.difficultyAnalysis,
+        weakTopics: analysis.weakTopics,
+        summary: analysis.stats
+    };
+}
 
 exports.getUserStats = async (req, res) => {
     try {
         const sessions = await TestSession.find({
             user: req.userId,
-            status: 'SUBMITTED'
+            status: { $in: ['SUBMITTED', 'EXPIRED'] }
         }).populate('test', 'title subject');
 
         const totalTests = sessions.length;
@@ -22,23 +73,34 @@ exports.getUserStats = async (req, res) => {
         let totalAccuracy = 0;
         const subjectMap = {};
 
-        sessions.forEach(session => {
+        sessions.forEach((session) => {
+            const accuracy = session.totalQuestions > 0
+                ? (session.correctAnswers / session.totalQuestions) * 100
+                : 0;
+
             totalScore += session.score || 0;
-            const accuracy = (session.totalQuestions > 0) ? (session.correctAnswers / session.totalQuestions) * 100 : 0;
             totalAccuracy += accuracy;
 
             const subject = session.test?.subject || 'Uncategorized';
             if (!subjectMap[subject]) {
-                subjectMap[subject] = { totalQuestions: 0, correctAnswers: 0, distinctTests: 0 };
+                subjectMap[subject] = {
+                    totalQuestions: 0,
+                    correctAnswers: 0,
+                    distinctTests: 0
+                };
             }
-            subjectMap[subject].totalQuestions += (session.totalQuestions || 0);
-            subjectMap[subject].correctAnswers += (session.correctAnswers || 0);
+
+            subjectMap[subject].totalQuestions += session.totalQuestions || 0;
+            subjectMap[subject].correctAnswers += session.correctAnswers || 0;
             subjectMap[subject].distinctTests += 1;
         });
 
-        const subjectAnalysis = Object.keys(subjectMap).map(subject => {
+        const subjectAnalysis = Object.keys(subjectMap).map((subject) => {
             const data = subjectMap[subject];
-            const accuracy = (data.totalQuestions > 0) ? Math.round((data.correctAnswers / data.totalQuestions) * 100) : 0;
+            const accuracy = data.totalQuestions > 0
+                ? Math.round((data.correctAnswers / data.totalQuestions) * 100)
+                : 0;
+
             return {
                 subject,
                 accuracy,
@@ -55,7 +117,6 @@ exports.getUserStats = async (req, res) => {
             },
             subjectAnalysis
         });
-
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -67,10 +128,19 @@ exports.getUserHistory = async (req, res) => {
             user: req.userId,
             status: { $in: ['SUBMITTED', 'EXPIRED'] }
         })
-            .sort({ updatedAt: -1 })
+            .sort({ submittedAt: -1, updatedAt: -1 })
             .populate('test', 'title subject duration');
 
-        res.json(sessions);
+        const sessionsWithLinks = sessions.map((session) => {
+            const sessionObj = session.toObject();
+            return {
+                ...sessionObj,
+                reviewPath: `/dashboard/review/${sessionObj._id}`,
+                reviewApi: `/api/v1/sessions/${sessionObj._id}/review`
+            };
+        });
+
+        res.json(sessionsWithLinks);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -79,100 +149,86 @@ exports.getUserHistory = async (req, res) => {
 exports.getSession = async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const session = await TestSession.findById(sessionId);
+        let session = await TestSession.findById(sessionId);
 
         if (!session) {
-            return res.status(404).json({ message: "Session not found" });
+            return res.status(404).json({ message: 'Session not found' });
         }
 
         if (session.user.toString() !== req.userId) {
-            return res.status(403).json({ message: "Unauthorized access to session" });
+            return res.status(403).json({ message: 'Unauthorized access to session' });
         }
+
+        session = await finalizeIfNeeded(session);
 
         const remaining = new Date(session.endTime).getTime() - Date.now();
-        if (remaining <= 0 && session.status === 'IN_PROGRESS') {
-            session.status = 'EXPIRED';
-            await session.save();
-        }
+        const { answerMap, state } = await getAnswerMapForSession(sessionId);
 
-        const answers = await TestAnswer.find({ session: sessionId });
-
-        let resultAnalysis = null;
         if (session.status === 'SUBMITTED' || session.status === 'EXPIRED') {
-            const test = await Test.findById(session.test);
-            const questions = await Question.find({ questionId: { $in: test.questions } });
-
-            const answerMap = {};
-            answers.forEach(a => answerMap[a.question.toString()] = a);
-
-            const questionMap = {};
-            questions.forEach(q => questionMap[q.questionId] = q);
-
-            const topicStats = {};
-            const difficultyStats = {};
-
-            resultAnalysis = test.questions.map(qIdString => {
-                const question = questionMap[qIdString];
-                if (!question) return null;
-
-                const ans = answerMap[question._id.toString()];
-                const selectedOption = ans ? ans.selectedOption : undefined;
-                const isCorrect = selectedOption === question.correctAnswer;
-                const isAnswered = selectedOption !== undefined;
-
-                const topic = question.topic || 'Uncategorized';
-                if (!topicStats[topic]) {
-                    topicStats[topic] = { total: 0, correct: 0, incorrect: 0, unanswered: 0 };
-                }
-                topicStats[topic].total++;
-                if (isCorrect) topicStats[topic].correct++;
-                else if (isAnswered) topicStats[topic].incorrect++;
-                else topicStats[topic].unanswered++;
-
-                const difficulty = question.difficulty || 'Unknown';
-                if (!difficultyStats[difficulty]) {
-                    difficultyStats[difficulty] = { total: 0, correct: 0, incorrect: 0, unanswered: 0 };
-                }
-                difficultyStats[difficulty].total++;
-                if (isCorrect) difficultyStats[difficulty].correct++;
-                else if (isAnswered) difficultyStats[difficulty].incorrect++;
-                else difficultyStats[difficulty].unanswered++;
-
-                return {
-                    id: question._id,
-                    text: question.question,
-                    options: question.options,
-                    correctAnswer: question.correctAnswer,
-                    selectedOption: selectedOption,
-                    isCorrect: isCorrect,
-                    difficulty: question.difficulty,
-                    topic: question.topic,
-                    subTopic: question.subTopic
-                };
-            }).filter(Boolean);
-
-            const formatStats = (statsObj) => {
-                return Object.entries(statsObj).map(([key, data]) => ({
-                    name: key,
-                    total: data.total,
-                    correct: data.correct,
-                    incorrect: data.incorrect,
-                    unanswered: data.unanswered,
-                    accuracy: Math.round((data.correct / data.total) * 100)
-                })).sort((a, b) => a.accuracy - b.accuracy);
-            };
-
-            var topicAnalysis = formatStats(topicStats);
-            var difficultyAnalysis = formatStats(difficultyStats);
+            const { orderedQuestions } = await getOrderedQuestionsForTest(session.test);
+            const analysis = buildQuestionAnalysis(orderedQuestions, answerMap);
+            return res.json(buildCompletedSessionPayload(session, answerMap, state, analysis));
         }
+
+        const ensuredState = state || await ensureSessionState(session);
 
         res.json({
             session,
             remainingTime: Math.max(0, Math.floor(remaining / 1000)),
-            answers,
-            resultAnalysis,
-            topicAnalysis,
-            difficultyAnalysis
+            answers: Object.entries(answerMap).map(([question, selectedOption]) => ({
+                question,
+                selectedOption
+            })),
+            state: {
+                marked: ensuredState?.marked || [],
+                currentQuestionIndex: ensuredState?.currentQuestionIndex || 0,
+                fullscreenExitedAt: ensuredState?.fullscreenExitedAt || null,
+                fullscreenDeadlineAt: ensuredState?.fullscreenDeadlineAt || null,
+                fullscreenWarnings: ensuredState?.fullscreenWarnings || 0
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getSessionReview = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        let session = await TestSession.findById(sessionId).populate('test', 'title subject duration');
+
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
+        }
+
+        if (session.user.toString() !== req.userId) {
+            return res.status(403).json({ message: 'Unauthorized access to session' });
+        }
+
+        session = await finalizeIfNeeded(session);
+
+        if (session.status === 'IN_PROGRESS') {
+            return res.status(400).json({ message: 'Review is available after test submission' });
+        }
+
+        const { answerMap, state } = await getAnswerMapForSession(sessionId);
+        const { orderedQuestions } = await getOrderedQuestionsForTest(session.test._id || session.test);
+        const analysis = buildQuestionAnalysis(orderedQuestions, answerMap);
+
+        return res.json({
+            ...buildCompletedSessionPayload(session, answerMap, state, analysis),
+            review: {
+                sessionId: session._id,
+                status: session.status,
+                test: {
+                    id: session.test?._id,
+                    title: session.test?.title,
+                    subject: session.test?.subject,
+                    duration: session.test?.duration
+                },
+                submittedAt: session.submittedAt,
+                questions: analysis.resultAnalysis
+            }
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -184,33 +240,102 @@ exports.saveAnswer = async (req, res) => {
         const { sessionId } = req.params;
         const { questionId, selectedOption } = req.body;
 
-        const session = await TestSession.findById(sessionId);
-
-        if (!session || session.status !== 'IN_PROGRESS') {
-            return res.status(400).json({ message: "Session not active" });
+        if (!questionId) {
+            return res.status(400).json({ message: 'questionId is required' });
         }
 
-        if (new Date(session.endTime).getTime() < Date.now()) {
-            session.status = 'EXPIRED';
-            await session.save();
-            return res.status(400).json({ message: "Time expired" });
+        let session = await TestSession.findById(sessionId);
+
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
         }
 
         if (session.user.toString() !== req.userId) {
-            return res.status(403).json({ message: "Unauthorized" });
+            return res.status(403).json({ message: 'Unauthorized' });
         }
 
-        await TestAnswer.findOneAndUpdate(
-            { session: sessionId, question: questionId },
-            { selectedOption },
-            { upsert: true, new: true }
-        );
+        session = await finalizeIfNeeded(session);
+        if (session.status !== 'IN_PROGRESS') {
+            return res.status(400).json({ message: 'Session not active' });
+        }
+
+        await upsertAnswerInSessionState(session, questionId, selectedOption);
 
         session.lastActiveAt = Date.now();
         await session.save();
 
-        res.json({ message: "Saved" });
+        res.json({ saved: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 
+exports.updateState = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const {
+            currentQuestionIndex,
+            marked,
+            fullscreenExitedAt,
+            fullscreenDeadlineAt,
+            fullscreenWarnings
+        } = req.body;
+
+        let session = await TestSession.findById(sessionId);
+
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
+        }
+
+        if (session.user.toString() !== req.userId) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        session = await finalizeIfNeeded(session);
+        if (session.status !== 'IN_PROGRESS') {
+            return res.status(400).json({ message: 'Session not active' });
+        }
+
+        const nextStatePatch = {};
+
+        if (Number.isInteger(currentQuestionIndex)) {
+            nextStatePatch.currentQuestionIndex = currentQuestionIndex;
+        }
+
+        if (Array.isArray(marked)) {
+            nextStatePatch.marked = [...new Set(marked)];
+        }
+
+        if (fullscreenExitedAt !== undefined) {
+            nextStatePatch.fullscreenExitedAt = fullscreenExitedAt
+                ? new Date(fullscreenExitedAt)
+                : null;
+        }
+
+        if (fullscreenDeadlineAt !== undefined) {
+            nextStatePatch.fullscreenDeadlineAt = fullscreenDeadlineAt
+                ? new Date(fullscreenDeadlineAt)
+                : null;
+        }
+
+        if (fullscreenWarnings !== undefined) {
+            nextStatePatch.fullscreenWarnings = Number(fullscreenWarnings) || 0;
+        }
+
+        await updateSessionState(session, nextStatePatch);
+
+        session.lastActiveAt = Date.now();
+        await session.save();
+
+        session = await finalizeIfNeeded(session);
+        if (session.status !== 'IN_PROGRESS') {
+            return res.status(200).json({
+                message: 'Session auto-submitted',
+                status: session.status
+            });
+        }
+
+        res.json({ message: 'State updated' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -222,69 +347,26 @@ exports.submitTest = async (req, res) => {
         const session = await TestSession.findById(sessionId);
 
         if (!session) {
-            return res.status(404).json({ message: "Session not found" });
+            return res.status(404).json({ message: 'Session not found' });
         }
 
         if (session.user.toString() !== req.userId) {
-            return res.status(403).json({ message: "Unauthorized" });
+            return res.status(403).json({ message: 'Unauthorized' });
         }
 
-        if (session.status === 'SUBMITTED') {
-            return res.status(400).json({ message: "Test already submitted" });
-        }
-
-        const test = await Test.findById(session.test);
-        const questions = await Question.find({ questionId: { $in: test.questions } });
-        const answers = await TestAnswer.find({ session: sessionId });
-        const questionMap = {};
-        questions.forEach(q => {
-            questionMap[q._id.toString()] = q;
-        });
-
-        let correct = 0;
-        let incorrect = 0;
-
-        answers.forEach(ans => {
-            const question = questionMap[ans.question.toString()];
-            if (question) {
-                if (ans.selectedOption === question.correctAnswer) {
-                    correct++;
-                } else {
-                    incorrect++;
-                }
-            }
-        });
-
-        const totalQuestions = test.questions.length;
-        const unanswered = totalQuestions - (correct + incorrect);
-
-        session.score = correct;
-        session.totalQuestions = totalQuestions;
-        session.correctAnswers = correct;
-        session.incorrectAnswers = incorrect;
-        session.unanswered = unanswered;
-
-        if (new Date(session.endTime).getTime() < Date.now()) {
-            session.status = 'EXPIRED';
-        } else {
-            session.status = 'SUBMITTED';
-        }
-
-        session.submittedAt = Date.now();
-        await session.save();
+        const status = req.body?.forceExpire ? 'EXPIRED' : undefined;
+        const analysis = await finalizeSession(session, { status });
+        const refreshedSession = await TestSession.findById(sessionId);
 
         res.json({
-            message: "Test submitted successfully",
-            status: session.status,
-            results: {
-                score: correct,
-                total: totalQuestions,
-                correct,
-                incorrect,
-                unanswered
+            message: 'Test submitted successfully',
+            status: refreshedSession.status,
+            score: {
+                correct: analysis.stats.correctAnswers,
+                incorrect: analysis.stats.incorrectAnswers,
+                unanswered: analysis.stats.unanswered
             }
         });
-
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

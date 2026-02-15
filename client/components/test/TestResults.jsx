@@ -1,25 +1,58 @@
 import Link from 'next/link';
 import useTestStore from '@/store/useTestStore';
-import { Trophy, RefreshCw, Home } from 'lucide-react';
+import { Trophy, Home } from 'lucide-react';
 
 export function TestResults() {
-  const { questions, answers, activeTest, resetTest, topicAnalysis, difficultyAnalysis } = useTestStore();
-  let correctCount = 0;
-  questions.forEach(q => {
+  const {
+    questions,
+    answers,
+    activeTest,
+    resetTest,
+    topicAnalysis,
+    difficultyAnalysis,
+    weakTopics,
+    summary,
+    sessionMeta
+  } = useTestStore();
+
+  const totalQuestions = summary?.totalQuestions ?? questions.length;
+  const correctCount = summary?.correctAnswers ?? questions.reduce((acc, q) => {
     const selectedOptionIndex = answers[q.id];
     if (selectedOptionIndex !== undefined && q.options[selectedOptionIndex] === q.correctAnswer) {
-      correctCount++;
+      return acc + 1;
     }
-  });
-
-  const scorePercentage = Math.round((correctCount / questions.length) * 100);
+    return acc;
+  }, 0);
+  const scorePercentage = totalQuestions > 0
+    ? Math.round((correctCount / totalQuestions) * 100)
+    : 0;
   const passed = scorePercentage >= 60;
+
+  const timeTakenSeconds = sessionMeta?.timeTakenSeconds
+    ?? (sessionMeta?.startTime && sessionMeta?.submittedAt
+      ? Math.max(
+        0,
+        Math.floor(
+          (new Date(sessionMeta.submittedAt).getTime() - new Date(sessionMeta.startTime).getTime()) / 1000
+        )
+      )
+      : null);
+
+  const formatDuration = (seconds) => {
+    if (seconds === null || seconds === undefined) {
+      return '--:--';
+    }
+
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center text-center max-w-2xl mx-auto py-12">
       <div className="mb-8 relative">
         <div className="absolute inset-0 bg-yellow-400 blur-3xl opacity-20 rounded-full"></div>
-        <div className="relative h-24 w-24 bg-gradient-to-br from-yellow-300 to-amber-500 rounded-2xl flex items-center justify-center shadow-xl rotate-12 transform hover:rotate-0 transition-transform duration-500">
+        <div className="relative h-24 w-24 bg-linear-to-br from-yellow-300 to-amber-500 rounded-2xl flex items-center justify-center shadow-xl rotate-12 transform hover:rotate-0 transition-transform duration-500">
           <Trophy size={48} className="text-white" />
         </div>
       </div>
@@ -34,13 +67,22 @@ export function TestResults() {
         </div>
         <div className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm">
           <p className="text-sm text-gray-400 font-bold uppercase mb-1">Correct</p>
-          <p className="text-4xl font-bold text-gray-800">{correctCount}/{questions.length}</p>
+          <p className="text-4xl font-bold text-gray-800">{correctCount}/{totalQuestions}</p>
         </div>
         <div className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm">
           <p className="text-sm text-gray-400 font-bold uppercase mb-1">Time Taken</p>
-          <p className="text-4xl font-bold text-gray-800">12:30</p>
+          <p className="text-4xl font-bold text-gray-800">{formatDuration(timeTakenSeconds)}</p>
         </div>
       </div>
+
+      {weakTopics?.length > 0 && (
+        <div className="w-full mb-8 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-left">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-amber-900">Focus Topics</h3>
+          <p className="mt-1 text-sm text-amber-800">
+            {weakTopics.map((topic) => `${topic.name} (${topic.incorrect} wrong)`).join(', ')}
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-4 mb-12">
         <Link
@@ -128,7 +170,7 @@ export function TestResults() {
             return (
               <div key={q.id} className={`p-6 rounded-2xl border ${isCorrect ? 'border-green-200 bg-green-50/50' : isSkipped ? 'border-gray-200 bg-gray-50' : 'border-red-200 bg-red-50/50'}`}>
                 <div className="flex items-start gap-4">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-500 text-sm">
+                  <span className="shrink-0 w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-500 text-sm">
                     {idx + 1}
                   </span>
                   <div className="flex-1">

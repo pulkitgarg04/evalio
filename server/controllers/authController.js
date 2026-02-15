@@ -14,15 +14,18 @@ exports.signup = async (req, res) => {
             })
         }
 
-        const existing = await User.findOneAndDelete({
-            email,
-            isVerified: false
-        });
+        const existing = await User.findOne({ email });
+        if (existing) {
+            const message = existing.isVerified ? "User already exists with this email" : "User already exists and is not verified. Check your inbox for the verification email";
+            return res.status(409).send({ message });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 8);
 
         const user = new User({
             name: name,
             email: email,
-            password: password,
+            password: hashedPassword,
             study_year: year,
         })
 
@@ -145,7 +148,7 @@ exports.resetPasswordMail = async (req, res) => {
     }
 }
 
-exports.resetPassowrd = async (req, res) => {
+exports.resetPassword = async (req, res) => {
     try {
         const { token } = req.params;
         const { password, confirm_password } = req.body;
@@ -153,7 +156,6 @@ exports.resetPassowrd = async (req, res) => {
         if (confirm_password !== password) {
             return res.status(400).send("Passwords don't match");
         }
-
 
         const decoded = jwt.verify(token, config.JWT_RESET_PASSWORD_SECRET);
         if (!decoded || !decoded.user_id) {
@@ -166,7 +168,8 @@ exports.resetPassowrd = async (req, res) => {
             return res.status(400).send({ message: "User not found" });
         }
 
-        user.password = password;
+        const hashedPassword = await bcrypt.hash(password, 8);
+        user.password = hashedPassword;
         await user.save();
 
         return res.status(200).send("success");
@@ -181,6 +184,7 @@ exports.logout = async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            // lax: Same-site requests + top-level navigations (clicking a link). Blocks cross-site sub-requests like fetch, XHR, <img>
         });
         res.status(200).json({ message: "Logged out successfully" });
     } catch (err) {
