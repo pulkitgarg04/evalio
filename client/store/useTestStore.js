@@ -59,9 +59,6 @@ const useTestStore = create((set, get) => ({
   status: 'idle',
   timeLeft: 0,
   error: null,
-  fullscreenDeadlineAt: null,
-  fullscreenExitedAt: null,
-  fullscreenWarnings: 0,
 
   hydrateSession: async (sessionId, testData) => {
     const sessionRes = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/sessions/${sessionId}`, {
@@ -104,10 +101,7 @@ const useTestStore = create((set, get) => ({
       currentQuestionIndex: sessionData.state?.currentQuestionIndex || 0,
       status: isCompleted ? 'completed' : 'running',
       timeLeft: sessionData.remainingTime ?? (testData.duration || 30) * 60,
-      error: null,
-      fullscreenDeadlineAt: sessionData.state?.fullscreenDeadlineAt || null,
-      fullscreenExitedAt: sessionData.state?.fullscreenExitedAt || null,
-      fullscreenWarnings: sessionData.state?.fullscreenWarnings || 0
+      error: null
     });
   },
 
@@ -157,10 +151,7 @@ const useTestStore = create((set, get) => ({
           ? 'completed'
           : 'running',
         timeLeft: sessionData.remainingTime ?? 0,
-        error: null,
-        fullscreenDeadlineAt: sessionData.state?.fullscreenDeadlineAt || null,
-        fullscreenExitedAt: sessionData.state?.fullscreenExitedAt || null,
-        fullscreenWarnings: sessionData.state?.fullscreenWarnings || 0
+        error: null
       });
     } catch (err) {
       console.error(err);
@@ -230,10 +221,7 @@ const useTestStore = create((set, get) => ({
         currentQuestionIndex: 0,
         status: 'completed',
         timeLeft: 0,
-        error: null,
-        fullscreenDeadlineAt: null,
-        fullscreenExitedAt: null,
-        fullscreenWarnings: 0
+        error: null
       });
     } catch (err) {
       console.error(err);
@@ -273,10 +261,7 @@ const useTestStore = create((set, get) => ({
       activeTest,
       status,
       currentQuestionIndex,
-      marked,
-      fullscreenExitedAt,
-      fullscreenDeadlineAt,
-      fullscreenWarnings
+      marked
     } = get();
 
     if (!activeTest?.sessionId || status !== 'running') return;
@@ -289,9 +274,6 @@ const useTestStore = create((set, get) => ({
         body: JSON.stringify({
           currentQuestionIndex,
           marked,
-          fullscreenExitedAt,
-          fullscreenDeadlineAt,
-          fullscreenWarnings,
           ...partialState
         })
       });
@@ -383,36 +365,6 @@ const useTestStore = create((set, get) => ({
     void get().persistSessionState({ currentQuestionIndex: index });
   },
 
-  setFullscreenWarning: async ({ exitedAt, deadlineAt }) => {
-    const nextExitedAt = exitedAt || new Date().toISOString();
-    const nextDeadlineAt = deadlineAt || new Date(Date.now() + 30000).toISOString();
-    const nextWarnings = (get().fullscreenWarnings || 0) + 1;
-
-    set({
-      fullscreenExitedAt: nextExitedAt,
-      fullscreenDeadlineAt: nextDeadlineAt,
-      fullscreenWarnings: nextWarnings
-    });
-
-    await get().persistSessionState({
-      fullscreenExitedAt: nextExitedAt,
-      fullscreenDeadlineAt: nextDeadlineAt,
-      fullscreenWarnings: nextWarnings
-    });
-  },
-
-  clearFullscreenWarning: async () => {
-    set({
-      fullscreenExitedAt: null,
-      fullscreenDeadlineAt: null
-    });
-
-    await get().persistSessionState({
-      fullscreenExitedAt: null,
-      fullscreenDeadlineAt: null
-    });
-  },
-
   completeTest: async ({ forceExpire = false } = {}) => {
     const { activeTest } = get();
     if (!activeTest?.sessionId) return;
@@ -454,10 +406,7 @@ const useTestStore = create((set, get) => ({
       currentQuestionIndex: 0,
       status: 'idle',
       timeLeft: 0,
-      error: null,
-      fullscreenDeadlineAt: null,
-      fullscreenExitedAt: null,
-      fullscreenWarnings: 0
+      error: null
     });
   },
 
