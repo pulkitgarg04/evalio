@@ -1,5 +1,6 @@
 const Question = require('../models/Question');
 const Test = require('../models/Test');
+const Subject = require('../models/Subject');
 const TestSession = require('../models/TestSession');
 const { ensureSessionState, finalizeSession } = require('../utils/sessionLifecycle');
 
@@ -22,11 +23,28 @@ exports.createTest = async (req, res) => {
 
 exports.getTests = async (req, res) => {
     try {
-        const { subject } = req.query;
+        const { subject, year } = req.query;
         let query = {};
         if (subject) {
             query.subject = subject;
         }
+
+        if (year) {
+            const parsedYear = parseInt(year, 10);
+            if (!Number.isNaN(parsedYear)) {
+                const subjectsForYear = await Subject.find({ year: parsedYear }).select('name -_id').lean();
+                const subjectNames = subjectsForYear.map((s) => s.name);
+
+                if (subject) {
+                    if (!subjectNames.includes(subject)) {
+                        return res.json([]);
+                    }
+                } else {
+                    query.subject = { $in: subjectNames };
+                }
+            }
+        }
+
         const tests = await Test.find(query);
         res.json(tests);
     } catch (error) {

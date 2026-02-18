@@ -20,14 +20,53 @@ export default function StatsPage() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/history/stats`, {
-                    credentials: 'include',
+                const [statsRes, historyRes] = await Promise.all([
+                    fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/sessions/stats`, {
+                        credentials: 'include',
+                    }),
+                    fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/sessions/history`, {
+                        credentials: 'include',
+                    })
+                ]);
+
+                if (!statsRes.ok) throw new Error('Failed to fetch stats');
+                if (!historyRes.ok) throw new Error('Failed to fetch history');
+
+                const statsData = await statsRes.json();
+                const historyData = await historyRes.json();
+
+                const attempts = Array.isArray(historyData) ? historyData : [];
+                const bestScore = attempts.length > 0
+                    ? Math.max(...attempts.map((a) => Number(a.score) || 0))
+                    : 0;
+                const totalQuestions = attempts.reduce((sum, a) => sum + (Number(a.totalQuestions) || 0), 0);
+                const totalCorrect = attempts.reduce((sum, a) => sum + (Number(a.correctAnswers) || 0), 0);
+
+                const subjectStats = {};
+                (statsData.subjectAnalysis || []).forEach((item) => {
+                    subjectStats[item.subject] = {
+                        count: item.totalTests,
+                        averageScore: item.accuracy
+                    };
                 });
 
-                if (!res.ok) throw new Error('Failed to fetch stats');
+                const recentAttempts = attempts.slice(0, 5).map((attempt) => ({
+                    id: attempt._id,
+                    testTitle: attempt.test?.title || 'Unknown Test',
+                    subject: attempt.test?.subject || 'Unknown',
+                    score: Number(attempt.score) || 0,
+                    completedAt: attempt.submittedAt || attempt.updatedAt || attempt.createdAt
+                }));
 
-                const data = await res.json();
-                setStats(data);
+                setStats({
+                    totalTests: statsData.overview?.totalTests || 0,
+                    averageScore: statsData.overview?.averageScore || 0,
+                    bestScore,
+                    totalQuestions,
+                    totalCorrect,
+                    subjectStats,
+                    recentAttempts
+                });
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -122,7 +161,7 @@ export default function StatsPage() {
                                 </div>
                                 <div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-500"
+                                        className="h-full bg-linear-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-500"
                                         style={{ width: `${data.averageScore}%` }}
                                     />
                                 </div>

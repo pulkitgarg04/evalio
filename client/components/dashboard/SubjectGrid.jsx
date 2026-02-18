@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { MoreVertical, LayoutGrid, List, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function SubjectGrid({ linkPrefix = '/dashboard/subject' }) {
+export function SubjectGrid({ linkPrefix = '/dashboard/subject', filterByUserYear = true }) {
     const [activeTab, setActiveTab] = React.useState('All');
     const [subjects, setSubjects] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [userYear, setUserYear] = React.useState(1);
     const [userName, setUserName] = React.useState('');
+    const initialFilterByUserYear = React.useRef(filterByUserYear);
 
     React.useEffect(() => {
         const fetchData = async () => {
@@ -26,7 +27,11 @@ export function SubjectGrid({ linkPrefix = '/dashboard/subject' }) {
                     setUserName(userData.username || 'Student');
                 }
 
-                const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/subjects?year=${year}`);
+                const subjectsUrl = initialFilterByUserYear.current
+                    ? `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/subjects?year=${year}`
+                    : `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/subjects`;
+
+                const res = await fetch(subjectsUrl);
                 if (res.ok) {
                     const data = await res.json();
                     setSubjects(data);
@@ -83,7 +88,9 @@ export function SubjectGrid({ linkPrefix = '/dashboard/subject' }) {
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 mb-1">My Subjects</h1>
-                    <p className="text-gray-500">Year {userYear} Curriculum • {subjects.length} Subjects Available</p>
+                    <p className="text-gray-500">
+                        {filterByUserYear ? `Year ${userYear} Curriculum` : 'All Years Curriculum'} • {subjects.length} Subjects Available
+                    </p>
                 </div>
             </div>
 
@@ -118,7 +125,9 @@ export function SubjectGrid({ linkPrefix = '/dashboard/subject' }) {
                 })}
                 {subjects.length === 0 && (
                     <div className="col-span-full py-16 text-center text-gray-400 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                        <p className="text-lg font-medium text-gray-500">No subjects found for Year {userYear}.</p>
+                        <p className="text-lg font-medium text-gray-500">
+                            {filterByUserYear ? `No subjects found for Year ${userYear}.` : 'No subjects found.'}
+                        </p>
                         <p className="text-sm mt-2">Please contact your administrator.</p>
                     </div>
                 )}

@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -6,27 +7,58 @@ import {
   LayoutDashboard,
   BookOpen,
   Clock,
-  Database,
   AlertCircle,
-  LogOut
+  LogOut,
+  User,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { icon: Home, label: "Home", href: "/dashboard" },
+  { icon: BookOpen, label: "Subjects", href: "/dashboard/subject" },
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard/stats" },
-  { icon: BookOpen, label: "Courses", href: "/dashboard/subject" },
   { icon: Clock, label: "History", href: "/dashboard/history" },
-  { icon: Database, label: "Resources", href: "/dashboard/resources" },
   { icon: AlertCircle, label: "Help", href: "/dashboard/help" },
 ];
 
 export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  const [user, setUser] = useState({ name: 'Guest', role: 'Student' });
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser({
+          name: parsedUser.username || parsedUser.name || 'User',
+          role: parsedUser.role || 'Student'
+        });
+      } catch (e) {
+        console.error('Failed to parse user data', e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     try {
+      setLoggingOut(true);
       await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/logout`, {
         method: 'POST',
         credentials: 'include',
@@ -34,6 +66,7 @@ export function Sidebar() {
     } catch (err) {
       console.error('Logout failed:', err);
     } finally {
+      setLoggingOut(false);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       router.replace('/login');
@@ -64,14 +97,45 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="flex flex-col gap-6 w-full items-center mt-auto">
+      <div className="flex flex-col gap-3 w-full items-center mt-auto relative" ref={dropdownRef}>
         <button
-          onClick={handleLogout}
-          className="p-2 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-          title="Logout"
+          onClick={() => setDropdownOpen((open) => !open)}
+          className="flex items-center justify-center w-12 h-12 rounded-full border border-dashed border-gray-200 text-gray-500 hover:text-[#0a3a30] hover:border-[#0a3a30]/30 hover:bg-emerald-50 transition-colors"
+          title={user.name}
         >
-          <LogOut size={20} strokeWidth={2} />
+          <div className="h-9 w-9 overflow-hidden rounded-full bg-[#0a3a30] text-white text-xs font-bold flex items-center justify-center">
+            <span>{user.name.charAt(0).toUpperCase()}</span>
+          </div>
         </button>
+
+        {dropdownOpen && (
+          <div className="absolute bottom-14 left-3 md:left-16 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <p className="text-sm font-bold text-gray-800">{user.name}</p>
+              <p className="text-xs text-gray-500">{user.role}</p>
+            </div>
+
+            <div className="py-1">
+              <Link
+                href="/profile"
+                onClick={() => setDropdownOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 hover:text-[#0a3a30] transition-colors"
+              >
+                <User size={16} />
+                <span>Profile</span>
+              </Link>
+
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+              >
+                {loggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+                <span>{loggingOut ? 'Logging out...' : 'Logout'}</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   );
