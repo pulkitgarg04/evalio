@@ -8,9 +8,9 @@ import {
     TrendingUp,
     Clock,
     CheckCircle,
-    Loader2,
     BarChart3
 } from 'lucide-react';
+import { StatsPageSkeleton } from '@/components/dashboard/StatsPageSkeleton';
 
 export default function StatsPage() {
     const [stats, setStats] = useState(null);
@@ -39,8 +39,9 @@ export default function StatsPage() {
                 const bestScore = attempts.length > 0
                     ? Math.max(...attempts.map((a) => Number(a.score) || 0))
                     : 0;
-                const totalQuestions = attempts.reduce((sum, a) => sum + (Number(a.totalQuestions) || 0), 0);
                 const totalCorrect = attempts.reduce((sum, a) => sum + (Number(a.correctAnswers) || 0), 0);
+                const totalIncorrect = attempts.reduce((sum, a) => sum + (Number(a.incorrectAnswers) || 0), 0);
+                const totalAnswered = totalCorrect + totalIncorrect;
 
                 const subjectStats = {};
                 (statsData.subjectAnalysis || []).forEach((item) => {
@@ -62,7 +63,7 @@ export default function StatsPage() {
                     totalTests: statsData.overview?.totalTests || 0,
                     averageScore: statsData.overview?.averageScore || 0,
                     bestScore,
-                    totalQuestions,
+                    totalAnswered,
                     totalCorrect,
                     subjectStats,
                     recentAttempts
@@ -78,14 +79,7 @@ export default function StatsPage() {
     }, []);
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-[60vh]">
-                <div className="flex items-center gap-3 text-gray-500">
-                    <Loader2 className="animate-spin" size={24} />
-                    <span className="font-medium">Loading your stats...</span>
-                </div>
-            </div>
-        );
+        return <StatsPageSkeleton />;
     }
 
     if (error) {
@@ -128,7 +122,7 @@ export default function StatsPage() {
                 <StatCard
                     icon={CheckCircle}
                     label="Questions Answered"
-                    value={stats?.totalQuestions || 0}
+                    value={stats?.totalAnswered || 0}
                     subValue={`${stats?.totalCorrect || 0} correct`}
                     color="purple"
                 />

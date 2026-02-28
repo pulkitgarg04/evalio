@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Clock, FileText, ChevronRight } from 'lucide-react';
+import { SubjectDetailsSkeleton } from '@/components/dashboard/SubjectDetailsSkeleton';
 
 export default function SubjectDetailsPage() {
   const params = useParams();
@@ -67,11 +68,7 @@ export default function SubjectDetailsPage() {
   }, [params?.id]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-4 border-[#0a3a30] border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <SubjectDetailsSkeleton />;
   }
 
   if (!subjectName) {

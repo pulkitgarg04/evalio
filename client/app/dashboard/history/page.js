@@ -8,10 +8,10 @@ import {
     Clock,
     ChevronLeft,
     ChevronRight,
-    Loader2,
     FileText,
     Trophy
 } from 'lucide-react';
+import { HistoryPageSkeleton } from '@/components/dashboard/HistoryPageSkeleton';
 
 export default function HistoryPage() {
     const [history, setHistory] = useState([]);
@@ -59,14 +59,7 @@ export default function HistoryPage() {
     };
 
     if (loading && history.length === 0) {
-        return (
-            <div className="flex items-center justify-center h-[60vh]">
-                <div className="flex items-center gap-3 text-gray-500">
-                    <Loader2 className="animate-spin" size={24} />
-                    <span className="font-medium">Loading your history...</span>
-                </div>
-            </div>
-        );
+        return <HistoryPageSkeleton />;
     }
 
     if (error) {
