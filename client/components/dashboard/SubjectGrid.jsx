@@ -50,8 +50,8 @@ export function SubjectGrid({ linkPrefix = '/dashboard/subject', filterByUserYea
             <div className="flex flex-col h-full bg-transparent animate-pulse">
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div className="space-y-3">
-                        <div className="h-9 w-48 rounded-xl bg-gray-200" />
-                        <div className="h-5 w-72 rounded-lg bg-gray-100" />
+                        <div className="h-8 w-48 rounded-md bg-gray-200" />
+                        <div className="h-4 w-72 rounded-md bg-gray-100" />
                     </div>
                 </div>
 
@@ -59,21 +59,21 @@ export function SubjectGrid({ linkPrefix = '/dashboard/subject', filterByUserYea
                     {Array.from({ length: 6 }).map((_, index) => (
                         <div
                             key={index}
-                            className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full"
+                            className="bg-white rounded-md p-5 border border-gray-200 flex flex-col h-full shadow-xs"
                         >
                             <div className="flex flex-col flex-1">
                                 <div className="flex justify-between items-start mb-4">
-                                    <div className="h-6 w-16 rounded-full bg-gray-100" />
+                                    <div className="h-5 w-16 rounded bg-gray-100" />
                                 </div>
 
                                 <div className="space-y-3 mb-6">
-                                    <div className="h-7 w-3/4 rounded-xl bg-gray-200" />
-                                    <div className="h-4 w-1/2 rounded-lg bg-gray-100" />
+                                    <div className="h-6 w-3/4 rounded bg-gray-200" />
+                                    <div className="h-4 w-1/2 rounded bg-gray-100" />
                                 </div>
 
-                                <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
-                                    <div className="h-4 w-24 rounded-lg bg-gray-100" />
-                                    <div className="w-8 h-8 rounded-full bg-gray-100" />
+                                <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <div className="h-4 w-24 rounded bg-gray-100" />
+                                    <div className="w-5 h-5 rounded bg-gray-100" />
                                 </div>
                             </div>
                         </div>
@@ -84,39 +84,39 @@ export function SubjectGrid({ linkPrefix = '/dashboard/subject', filterByUserYea
     }
 
     return (
-        <div className="flex flex-col h-full bg-transparent">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div className="flex flex-col h-full bg-transparent max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-1">My Subjects</h1>
-                    <p className="text-gray-500">
+                    <h1 className="text-2xl font-semibold text-slate-900 tracking-tight mb-1">My Subjects</h1>
+                    <p className="text-sm text-slate-500">
                         {filterByUserYear ? `Year ${userYear} Curriculum` : 'All Years Curriculum'} • {subjects.length} Subjects Available
                     </p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-10">
                 {subjects.map((subject) => {
                     return (
-                        <Link href={`${linkPrefix}/${subject._id}`} key={subject._id} className="group bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-emerald-900/5 hover:border-emerald-100 transition-all duration-300 flex flex-col h-full">
+                        <Link href={`${linkPrefix}/${subject._id}`} key={subject._id} className="group bg-white rounded-md p-5 border border-gray-200 hover:border-[#0ddc90]/40 hover:shadow-sm transition-all duration-200 flex flex-col h-full shadow-xs">
                             <div className="flex flex-col flex-1">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className={cn("text-xs font-bold px-2 py-1 rounded bg-gray-100 text-gray-600")}>
+                                <div className="flex justify-between items-start mb-3">
+                                    <span className={cn("text-[11px] font-semibold tracking-wide px-2 py-0.5 rounded border border-gray-200 bg-gray-50 text-slate-600")}>
                                         YEAR {subject.year || userYear}
                                     </span>
                                 </div>
 
-                                <h3 className="text-xl font-bold text-gray-900 leading-tight mb-2 group-hover:text-[#0a3a30] transition-colors">
+                                <h3 className="text-[17px] font-semibold text-slate-800 leading-snug mb-1.5 group-hover:text-[#0bc07d] transition-colors">
                                     {subject.name}
                                 </h3>
 
-                                <p className="text-sm text-gray-500 mb-6">
-                                    {subject.testCount > 0 ? `${subject.testCount} Tests Available` : 'No tests yet'}
+                                <p className="text-[13px] text-slate-500 mb-5">
+                                    {subject.testCount > 0 ? `${subject.testCount} Tests` : 'No tests'}
                                 </p>
 
-                                <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between text-sm font-medium">
-                                    <span className="text-gray-400 group-hover:text-[#0a3a30] transition-colors">View Tests</span>
-                                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#0a3a30] group-hover:text-white transition-all">
-                                        <Plus size={16} className="transform group-hover:rotate-90 transition-transform" />
+                                <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between text-[13px] font-medium">
+                                    <span className="text-slate-500 group-hover:text-[#0bc07d] transition-colors">View Tests</span>
+                                    <div className="text-slate-400 group-hover:text-[#0bc07d] transition-colors">
+                                        &rarr;
                                     </div>
                                 </div>
                             </div>
@@ -124,11 +124,11 @@ export function SubjectGrid({ linkPrefix = '/dashboard/subject', filterByUserYea
                     );
                 })}
                 {subjects.length === 0 && (
-                    <div className="col-span-full py-16 text-center text-gray-400 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                        <p className="text-lg font-medium text-gray-500">
+                    <div className="col-span-full py-16 text-center text-slate-400 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                        <p className="text-sm font-medium text-slate-600">
                             {filterByUserYear ? `No subjects found for Year ${userYear}.` : 'No subjects found.'}
                         </p>
-                        <p className="text-sm mt-2">Please contact your administrator.</p>
+                        <p className="text-xs mt-1">Please contact your administrator.</p>
                     </div>
                 )}
             </div>

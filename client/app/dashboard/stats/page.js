@@ -94,70 +94,49 @@ export default function StatsPage() {
     }
 
     return (
-        <div className="space-y-8">
-            <div>
-                <h1 className="text-3xl font-bold text-[#0a3a30]">Dashboard</h1>
-                <p className="text-gray-500 mt-1">Track your learning progress and performance</p>
+        <div className="space-y-8 max-w-6xl mx-auto">
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Statistics</h1>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard
-                    icon={BookOpen}
                     label="Tests Taken"
                     value={stats?.totalTests || 0}
-                    color="emerald"
                 />
                 <StatCard
-                    icon={Target}
                     label="Average Score"
                     value={`${stats?.averageScore || 0}%`}
-                    color="blue"
                 />
                 <StatCard
-                    icon={Trophy}
                     label="Best Score"
                     value={`${stats?.bestScore || 0}%`}
-                    color="amber"
                 />
                 <StatCard
-                    icon={CheckCircle}
                     label="Questions Answered"
                     value={stats?.totalAnswered || 0}
-                    subValue={`${stats?.totalCorrect || 0} correct`}
-                    color="purple"
                 />
             </div>
 
             {stats?.subjectStats && Object.keys(stats.subjectStats).length > 0 && (
-                <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-emerald-50 rounded-xl">
-                            <BarChart3 className="text-[#0a3a30]" size={20} />
-                        </div>
-                        <h2 className="text-lg font-bold text-[#0a3a30]">Performance by Subject</h2>
-                    </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-xs mt-8">
+                    <h2 className="text-lg font-semibold text-slate-800 mb-6">Performance by Subject</h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {Object.entries(stats.subjectStats).map(([subject, data]) => (
                             <div
                                 key={subject}
-                                className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-emerald-200 transition-colors"
+                                className="bg-white rounded-md p-4 border border-gray-200 hover:border-[#0ddc90]/40 transition-colors shadow-xs"
                             >
                                 <div className="flex items-center justify-between mb-3">
-                                    <span className="font-semibold text-gray-800 capitalize">{subject}</span>
-                                    <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
+                                    <span className="font-semibold text-slate-700 capitalize">{subject}</span>
+                                    <span className="text-[11px] border border-gray-200 text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full font-medium">
                                         {data.count} tests
                                     </span>
                                 </div>
-                                <div className="flex items-end gap-2">
-                                    <span className="text-2xl font-bold text-[#0a3a30]">{data.averageScore}%</span>
-                                    <span className="text-gray-400 text-sm mb-1">avg score</span>
-                                </div>
-                                <div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-linear-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-500"
-                                        style={{ width: `${data.averageScore}%` }}
-                                    />
+                                <div className="flex items-baseline gap-1 mt-1">
+                                    <span className="text-2xl font-semibold text-slate-800">{data.averageScore}%</span>
+                                    <span className="text-gray-400 text-xs mb-1 font-medium">avg</span>
                                 </div>
                             </div>
                         ))}
@@ -166,42 +145,45 @@ export default function StatsPage() {
             )}
 
             {stats?.recentAttempts && stats.recentAttempts.length > 0 && (
-                <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-blue-50 rounded-xl">
-                            <Clock className="text-blue-600" size={20} />
-                        </div>
-                        <h2 className="text-lg font-bold text-[#0a3a30]">Recent Activity</h2>
-                    </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-xs mt-8">
+                    <h2 className="text-lg font-semibold text-slate-800 mb-6">Recent Activity</h2>
 
-                    <div className="space-y-3">
+                    <div className="space-y-0">
+                        {/* Table Header */}
+                        <div className="grid grid-cols-12 gap-4 pb-2 border-b border-gray-200 text-xs font-semibold text-slate-500 uppercase tracking-widest">
+                            <div className="col-span-5">Test Name</div>
+                            <div className="col-span-3">Subject</div>
+                            <div className="col-span-2">Results</div>
+                            <div className="col-span-2 text-right">Date</div>
+                        </div>
+
                         {stats.recentAttempts.map((attempt) => (
                             <div
                                 key={attempt.id}
-                                className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-emerald-200 transition-colors"
+                                className="grid grid-cols-12 gap-4 py-4 border-b border-gray-100 items-center hover:bg-slate-50 transition-colors"
                             >
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg ${attempt.score >= 70
-                                        ? 'bg-emerald-100 text-emerald-700'
-                                        : attempt.score >= 50
-                                            ? 'bg-amber-100 text-amber-700'
-                                            : 'bg-red-100 text-red-700'
+                                <div className="col-span-5 font-medium text-slate-800">
+                                    {attempt.testTitle}
+                                </div>
+                                <div className="col-span-3 text-slate-500 capitalize text-sm">
+                                    {attempt.subject}
+                                </div>
+                                <div className="col-span-2">
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${attempt.score >= 70
+                                            ? 'border-emerald-200 text-emerald-700 bg-emerald-50/50'
+                                            : attempt.score >= 50
+                                                ? 'border-amber-200 text-amber-700 bg-amber-50/50'
+                                                : 'border-red-200 text-red-700 bg-red-50/50'
                                         }`}>
                                         {attempt.score}%
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-gray-800">{attempt.testTitle}</p>
-                                        <p className="text-sm text-gray-500 capitalize">{attempt.subject}</p>
-                                    </div>
+                                    </span>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-sm text-gray-400">
-                                        {new Date(attempt.completedAt).toLocaleDateString('en-US', {
-                                            month: 'short',
-                                            day: 'numeric',
-                                            year: 'numeric'
-                                        })}
-                                    </p>
+                                <div className="col-span-2 text-right text-sm text-slate-500">
+                                    {new Date(attempt.completedAt).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                    })}
                                 </div>
                             </div>
                         ))}
@@ -224,22 +206,11 @@ export default function StatsPage() {
     );
 }
 
-function StatCard({ icon: Icon, label, value, subValue, color = 'emerald' }) {
-    const colorClasses = {
-        emerald: 'bg-emerald-50 text-emerald-600',
-        blue: 'bg-blue-50 text-blue-600',
-        amber: 'bg-amber-50 text-amber-600',
-        purple: 'bg-purple-50 text-purple-600',
-    };
-
+function StatCard({ label, value }) {
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md hover:border-gray-200 transition-all group">
-            <div className={`w-12 h-12 rounded-xl ${colorClasses[color]} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                <Icon size={22} />
-            </div>
-            <p className="text-sm font-medium text-gray-500 mb-1">{label}</p>
-            <p className="text-3xl font-bold text-[#0a3a30]">{value}</p>
-            {subValue && <p className="text-sm text-gray-400 mt-1">{subValue}</p>}
+        <div className="border border-gray-200 rounded-md p-5 bg-white flex flex-col gap-1.5 shadow-xs">
+            <span className="text-[13px] text-gray-500 font-medium tracking-wide">{label}</span>
+            <span className="text-2xl font-semibold text-slate-800">{value}</span>
         </div>
     );
 }

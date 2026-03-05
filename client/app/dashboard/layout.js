@@ -15,10 +15,10 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50/50">
+    <div className="flex min-h-screen bg-gray-50/30 font-sans text-slate-900">
       <Sidebar />
-      <div className="flex flex-1 flex-col pl-16 md:pl-20 transition-all duration-300">
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+      <div className="flex flex-1 flex-col pl-64 transition-all duration-300">
+        <main className="flex-1 p-8 overflow-y-auto">
           {children}
         </main>
       </div>

@@ -1,154 +1,70 @@
 "use client";
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, BookOpen, Users, PieChart, LogOut, Loader2 } from 'lucide-react';
+import { ArrowRight, BarChart3, Target, CheckCircle2, LayoutDashboard, Brain, FileText, Check } from 'lucide-react';
+
+import Footer from '@/components/layout/Footer';
+import LandingNavbar from '@/components/layout/LandingNavbar';
+
+const chartData = [
+  { outer: 45, inner: 50 }, { outer: 76, inner: 42 }, { outer: 34, inner: 58 }, { outer: 88, inner: 48 },
+  { outer: 28, inner: 45 }, { outer: 92, inner: 52 }, { outer: 55, inner: 60 }, { outer: 68, inner: 44 },
+  { outer: 22, inner: 55 }, { outer: 50, inner: 40 }, { outer: 80, inner: 56 }, { outer: 42, inner: 47 },
+  { outer: 65, inner: 51 }, { outer: 85, inner: 59 }, { outer: 30, inner: 43 }, { outer: 70, inner: 54 }
+];
 
 export default function Home() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [loggingOut, setLoggingOut] = useState(false);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/me`, {
-          credentials: 'include',
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-        }
-      } catch (err) {
-        console.error('Auth check failed:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    checkAuth();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      setLoggingOut(true);
-      await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-      setUser(null);
-    } catch (err) {
-      console.error('Logout failed:', err);
-    } finally {
-      setLoggingOut(false);
-    }
-  };
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-sans">
-      <nav className="absolute top-0 w-full z-50 border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-extrabold tracking-tight text-white hover:opacity-90 transition-opacity">Evalio</span>
-          </div>
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-[#0ddc90] selection:text-slate-900">
+      <LandingNavbar />
 
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex items-center gap-6 text-emerald-100 text-sm font-medium">
-              <Link href="#" className="hover:text-white transition-colors">Features</Link>
-            </div>
-            <div className="flex items-center gap-3">
-              {loading ? (
-                <div className="px-4 py-2">
-                  <Loader2 className="animate-spin text-white" size={20} />
+      <section className="relative pt-[180px] pb-20 lg:pt-[220px] lg:pb-32 bg-[#f6fdff] overflow-hidden text-center z-0">
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[1200px] h-[800px] bg-[#0ddc90]/20 rounded-full blur-[140px] pointer-events-none"></div>
+
+        <div className="max-w-5xl mx-auto px-4 relative z-10">
+          <h1 className="text-[3.5rem] lg:text-[5.5rem] font-bold tracking-tight text-[#0f172a] mb-8 leading-[1.05]">
+            Turn your exams into <br className="hidden md:block"/> success stories.
+          </h1>
+          <p className="text-xl lg:text-[22px] text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed font-normal">
+            The platform for automated assessments, personalized learning paths,<br className="hidden sm:block"/> and real-time analytics
+          </p>
+
+          <div className="relative mx-auto w-full max-w-[1100px]">
+            <div className="rounded-2xl bg-white p-2 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-200/60 ring-1 ring-black/5">
+              <div className="bg-[#f8fafc] rounded-xl overflow-hidden border border-slate-100 flex flex-col min-h-[500px]">
+                <div className="w-full bg-white border-b border-slate-100 p-4 flex gap-2 flex-col lg:flex-row items-start lg:items-center justify-between">
+                    <div className="flex items-center gap-6 w-full text-slate-400 font-semibold text-sm px-4">
+                        <span className="flex items-center gap-2.5 text-slate-800"><div className="w-2.5 h-2.5 rounded-full bg-[#0ddc90]"></div> Dashboard</span>
+                        <span className="flex items-center gap-2.5 hover:text-slate-600 cursor-pointer"><div className="w-2.5 h-2.5 rounded-full bg-slate-300"></div> Tests</span>
+                        <span className="flex items-center gap-2.5 hover:text-slate-600 cursor-pointer"><div className="w-2.5 h-2.5 rounded-full bg-slate-300"></div> Analysis</span>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 mr-4"></div>
                 </div>
-              ) : user ? (
-                <>
-                  <Link
-                    href="/dashboard"
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white hover:text-emerald-200 transition-colors"
-                  >
-                    <div className="h-8 w-8 rounded-full bg-[#fcd34d] text-emerald-950 flex items-center justify-center font-bold text-sm">
-                      {user.username?.charAt(0).toUpperCase() || 'U'}
+                
+                <div className="p-8 w-full flex-1">
+                    <div className="flex gap-5 items-center mb-12">
+                        <div className="h-20 w-20 bg-white border border-slate-200 rounded-2xl flex items-center justify-center shadow-sm">
+                            <Target className="text-[#0ddc90]" size={36}/>
+                        </div>
+                        <div className="text-left space-y-3">
+                            <div className="h-5 w-32 bg-slate-200 rounded-md"></div>
+                            <div className="flex items-baseline gap-3">
+                                <div className="h-10 w-48 bg-slate-800 rounded-md"></div>
+                                <div className="h-5 w-16 bg-[#0ddc90]/20 rounded-md"></div>
+                            </div>
+                        </div>
                     </div>
-                    <span className="hidden sm:inline">{user.username}</span>
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    disabled={loggingOut}
-                    className="px-4 py-2.5 text-sm font-bold text-white bg-white/10 hover:bg-white/20 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
-                  >
-                    {loggingOut ? (
-                      <Loader2 className="animate-spin" size={16} />
-                    ) : (
-                      <LogOut size={16} />
-                    )}
-                    <span className="hidden sm:inline">Logout</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link href="/login" className="px-4 py-2 text-sm font-bold text-white hover:text-emerald-200 transition-colors">Log in</Link>
-                  <Link href="/signup" className="px-5 py-2.5 text-sm font-bold text-emerald-950 bg-[#fcd34d] rounded-lg hover:bg-[#fbbf24] transition-all">Sign up</Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-64 bg-[#0a3a30] overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
-
-        <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-emerald-500/20 rounded-full blur-[100px] opacity-40"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-teal-400/10 rounded-full blur-[100px] opacity-30"></div>
-
-        <div className="max-w-7xl mx-auto px-6 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="text-left">
-            <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-white mb-8 leading-[1.1]">
-              Turn your exams <br />
-              <span className="text-emerald-200">into success stories.</span>
-            </h1>
-
-            <p className="text-xl text-emerald-100/80 mb-10 max-w-lg leading-relaxed">
-              The platform for automated assessments, personalized learning paths, and real-time analytics.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Link href={user ? "/dashboard" : "/signup"} className="px-8 py-4 rounded-lg bg-[#fcd34d] text-emerald-950 font-bold text-lg hover:bg-[#fbbf24] transition-all flex items-center gap-2">
-                {user ? "Go to Dashboard" : "Get Started"} <ArrowRight size={20} />
-              </Link>
-            </div>
-            <p className="mt-6 text-sm text-emerald-100/50">Prepare for FAs, STs and End Term Exams!</p>
-          </div>
-
-          <div className="relative">
-            <div className="rounded-xl bg-white/10 backdrop-blur-md p-2 border border-white/20 shadow-2xl transform lg:translate-x-12 lg:rotate-[-2deg] hover:rotate-0 transition-all duration-500">
-              <div className="bg-white rounded-lg overflow-hidden shadow-inner">
-                <div className="bg-gray-50 border-b border-gray-100 p-3 flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                </div>
-                <div className="p-6 grid grid-cols-3 gap-6 bg-gray-50/50 min-h-[300px]">
-                  <div className="col-span-2 space-y-4">
-                    <div className="h-32 bg-emerald-50 rounded-xl border border-emerald-100 p-4 flex gap-4 items-end pb-0">
-                      <div className="w-8 h-12 bg-emerald-200 rounded-t"></div>
-                      <div className="w-8 h-20 bg-emerald-300 rounded-t"></div>
-                      <div className="w-8 h-16 bg-emerald-400 rounded-t"></div>
-                      <div className="w-8 h-24 bg-emerald-500 rounded-t"></div>
+                    <div className="h-72 bg-white border border-slate-200 rounded-2xl p-8 shadow-sm flex items-end gap-6 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-full h-[1px] bg-slate-100 shadow-[0_0_30px_#0ddc90] transform rotate-3 origin-right opacity-30 mt-36"></div>
+                        {chartData.map((data, i) => (
+                        <div key={i} className="flex-1 bg-slate-50 border border-slate-100 rounded-t-md relative group flex flex-col justify-end" style={{ height: `${data.outer}%` }}>
+                            <div className="w-full bg-[#0ddc90] rounded-t-md opacity-20 absolute bottom-0" style={{ height: `100%` }}></div>
+                            <div className="w-full bg-[#0ddc90] rounded-t-lg group-hover:bg-[#0bc07d] transition-colors relative z-10 shadow-sm" style={{ height: `${data.inner}%` }}></div>
+                        </div>
+                        ))}
                     </div>
-                    <div className="h-16 bg-white rounded-xl border border-gray-100"></div>
-                    <div className="h-16 bg-white rounded-xl border border-gray-100"></div>
-                  </div>
-                  <div className="col-span-1 space-y-4">
-                    <div className="h-full bg-white rounded-xl border border-gray-100 p-4">
-                      <div className="w-12 h-12 bg-yellow-100 rounded-full mb-4"></div>
-                      <div className="w-full h-2 bg-gray-100 rounded mb-2"></div>
-                      <div className="w-2/3 h-2 bg-gray-100 rounded"></div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -156,75 +72,60 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="bg-white border-b border-gray-100 py-10">
+      <div className="bg-white py-16 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">Made for the students of</p>
-          <div className="flex flex-wrap justify-center gap-12 grayscale hover:grayscale-0 transition-all duration-500">
-            <img className="h-15" src="/cu-logo.webp" alt="Chitkara University" />
+          <p className="text-xs font-bold text-slate-400/80 uppercase tracking-widest mb-10">Made for the students of</p>
+          <div className="flex flex-wrap items-center justify-center gap-16 lg:gap-24 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-100">
+            <img className="h-12 object-contain" src="/cu-logo.webp" alt="Chitkara University" />
           </div>
         </div>
       </div>
 
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16 max-w-3xl mx-auto">
-            <div className="inline-block px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-sm mb-4">
-              Values & Features
+      <section className="py-24 lg:py-32 bg-white relative" id="features">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div className="bg-[#f7f9fc] border border-slate-100/60 rounded-[2.5rem] p-10 lg:p-16 relative overflow-hidden group">
+              <h3 className="text-[26px] font-bold text-slate-900 mb-4">Online MCQ Tests</h3>              
+              <p className="text-slate-500 mb-12 max-w-md text-lg leading-relaxed">Practice MCQ tests for all subjects in your academic year to strengthen your understanding.</p>
+              <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm relative z-10 w-full overflow-hidden">
+                 <div className="flex border-b border-gray-50 pb-3 mb-4 items-center gap-2">
+                    <CheckCircle2 size={18} className="text-[#0ddc90]"/>
+                    <span className="text-sm font-bold text-slate-700">test_operating_system</span>
+                 </div>
+                 <div className="space-y-3 opacity-60">
+                    <div className="h-2.5 bg-slate-200 rounded-full w-1/3"></div>
+                    <div className="h-2.5 bg-slate-200 rounded-full w-1/2"></div>
+                    <div className="h-2.5 bg-slate-200 rounded-full w-1/4"></div>
+                    <div className="h-2.5 bg-slate-200 rounded-full w-2/3"></div>
+                    <div className="h-2.5 bg-slate-200 rounded-full w-1/3"></div>
+                 </div>
+              </div>
             </div>
-            <h2 className="text-3xl lg:text-4xl font-bold text-[#0a3a30] mb-4">Everything you need to succeed</h2>
-            <p className="text-lg text-gray-500">
-              Powerful features to help you as a student to ace your exams.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16">
-            <FeatureItem
-              icon={PieChart}
-              title="Detailed Analytics"
-              desc="Gain actionable insights into your performance with comprehensive score."
-              color="text-blue-600"
-            />
-            <FeatureItem
-              icon={BookOpen}
-              title="Diverse Course Content"
-              desc="Support for multiple question types for various subjects."
-              color="text-purple-600"
-            />
-            <FeatureItem
-              icon={Users}
-              title="Leaderboard"
-              desc="Track your progress and compete with your peers on the leaderboard."
-              color="text-rose-600"
-            />
+            <div className="bg-[#f7f9fc] border border-slate-100/60 rounded-[2.5rem] p-10 lg:p-16 relative overflow-hidden group">
+              <h3 className="text-[26px] font-bold text-slate-900 mb-4">Detailed Analysis</h3>
+              <p className="text-slate-500 mb-12 max-w-md text-lg leading-relaxed">Get a detailed analysis after each test to understand mistakes, track performance trends.</p>
+              
+              <div className="flex items-center justify-start gap-4 flex-wrap">
+                 <div className="space-y-3">
+                   <div className="px-4 py-2.5 bg-white border border-rose-100 text-rose-600 text-[13px] font-bold rounded-xl shadow-sm w-36 text-center flex items-center justify-center gap-2"><span className="w-2 h-2 rounded-full bg-rose-500"></span> Wrong Option</div>
+                   <div className="px-4 py-2.5 bg-white border border-amber-100 text-amber-600 text-[13px] font-bold rounded-xl shadow-sm w-36 text-center flex items-center justify-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Not Attempted</div>
+                 </div>
+                 <div className="hidden sm:block h-0.5 w-12 bg-slate-200"></div>
+                 <div className="w-16 h-16 bg-[#0ddc90]/20 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-[#0ddc90] rounded-full flex items-center justify-center shadow-[0_0_20px_#0ddc90]">
+                        <Check size={16} className="text-white font-bold"/>
+                    </div>
+                 </div>
+                 <div className="hidden sm:block h-0.5 w-12 bg-slate-200"></div>
+                 <div className="px-4 py-2.5 bg-[#0ddc90] text-slate-900 text-[13px] font-bold rounded-xl shadow-md flex items-center justify-center gap-2"><Check size={16}/> Correct Option</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <footer className="bg-[#022c22] text-white py-8 border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-emerald-200/50">
-            <p>© 2026 Evalio Inc. All rights reserved.</p>
-            <div className="flex gap-6">
-              <Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
-              <Link href="/terms-conditions" className="hover:text-white transition-colors">Terms of Service</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-function FeatureItem({ icon: Icon, title, desc, color = "text-emerald-600" }) {
-  return (
-    <div className="flex flex-col items-center text-center group">
-      <div className={`mb-6 ${color} transition-transform duration-300 group-hover:-translate-y-1`}>
-        <Icon size={40} strokeWidth={2} />
-      </div>
-      <h3 className="text-xl font-bold text-[#0a3a30] mb-3">{title}</h3>
-      <p className="text-gray-500 leading-relaxed text-sm max-w-sm mx-auto">
-        {desc}
-      </p>
+      <Footer />
     </div>
   );
 }

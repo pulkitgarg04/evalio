@@ -10,7 +10,7 @@ export const currentUser = {
 };
 
 export const categories = [
-  { id: 'math', name: 'Mathematics', color: 'bg-blue-500' },
+  { id: 'math', name: 'Mathematics', color: 'bg-[#0ddc90]' },
   { id: 'uiux', name: 'UI/UX Design', color: 'bg-amber-500' },
   { id: 'webdev', name: 'Web Dev', color: 'bg-emerald-500' },
   { id: 'marketing', name: 'Marketing', color: 'bg-rose-500' },

@@ -26,7 +26,7 @@ export function StatsOverview() {
         fetchStats();
     }, []);
 
-    if (loading) return <div className="h-64 animate-pulse bg-gray-100 rounded-2xl"></div>;
+    if (loading) return <div className="h-64 animate-pulse bg-gray-100 rounded-md"></div>;
 
     if (!stats || !stats.overview) return null;
 
@@ -35,7 +35,7 @@ export function StatsOverview() {
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div className="bg-white p-6 rounded-md shadow-xs border border-gray-200 flex items-center gap-4">
                     <div className="p-4 bg-blue-50 text-blue-600 rounded-xl">
                         <Trophy size={24} />
                     </div>
@@ -45,7 +45,7 @@ export function StatsOverview() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div className="bg-white p-6 rounded-md shadow-xs border border-gray-200 flex items-center gap-4">
                     <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl">
                         <Target size={24} />
                     </div>
@@ -55,7 +55,7 @@ export function StatsOverview() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div className="bg-white p-6 rounded-md shadow-xs border border-gray-200 flex items-center gap-4">
                     <div className="p-4 bg-purple-50 text-purple-600 rounded-xl">
                         <Activity size={24} />
                     </div>
@@ -67,7 +67,7 @@ export function StatsOverview() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="bg-white p-6 rounded-md shadow-xs border border-gray-200">
                     <h3 className="text-lg font-bold text-gray-900 mb-6">Subject Performance</h3>
                     <div className="h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -88,7 +88,7 @@ export function StatsOverview() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="bg-white p-6 rounded-md shadow-xs border border-gray-200">
                     <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
                         <AlertCircle size={20} className="text-red-500" /> Areas for Improvement
                     </h3>

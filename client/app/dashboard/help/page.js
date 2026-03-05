@@ -6,13 +6,13 @@ import { cn } from '@/lib/utils';
 export default function HelpPage() {
     return (
         <div className="max-w-4xl mx-auto space-y-8">
-            <h1 className="text-3xl font-bold text-gray-800">Help Center</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Help Center</h1>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
-                <h2 className="text-xl font-bold text-[#0a3a30] mb-6 flex items-center gap-2">
+            <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6 md:p-8">
+                <h2 className="text-lg font-semibold text-slate-800 mb-6 flex items-center gap-2">
                     Frequently Asked Questions
                 </h2>
-                <div className="space-y-4">
+                <div className="space-y-3">
                     <FAQItem
                         question="How do I access my past test results?"
                         answer="You can view all your past test attempts, scores, and detailed analysis in the 'History' tab from the sidebar."
@@ -41,16 +41,16 @@ function FAQItem({ question, answer }) {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="border border-gray-100 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 rounded-md overflow-hidden bg-white">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left"
             >
-                <span className="font-semibold text-gray-700">{question}</span>
-                {isOpen ? <ChevronUp size={18} className="text-gray-500" /> : <ChevronDown size={18} className="text-gray-500" />}
+                <span className="font-medium text-sm text-slate-700">{question}</span>
+                {isOpen ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
             </button>
             {isOpen && (
-                <div className="p-4 bg-white text-gray-600 text-sm leading-relaxed border-t border-gray-100">
+                <div className="p-4 pt-0 text-slate-500 text-sm leading-relaxed">
                     {answer}
                 </div>
             )}
@@ -101,22 +101,22 @@ function ContactForm() {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
-            <h2 className="text-xl font-bold text-[#0a3a30] mb-2 flex items-center gap-2">
-                <Mail size={24} /> Contact Admin
+        <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6 md:p-8">
+            <h2 className="text-lg font-semibold text-slate-800 mb-1 flex items-center gap-2">
+                <Mail size={20} className="text-slate-500" /> Contact Admin
             </h2>
-            <p className="text-gray-500 mb-6 text-sm">Have a query that's not answered above? Send us a message directly.</p>
+            <p className="text-slate-500 mb-6 text-sm">Have a query that&apos;s not answered above? Send us a message directly.</p>
 
             {status === 'success' ? (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-6 text-center">
-                    <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Send size={20} className="text-emerald-600" />
+                <div className="bg-[#f6fdff] border border-[#0ddc90]/20 rounded-md p-6 text-center">
+                    <div className="w-10 h-10 bg-[#0ddc90]/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Send size={16} className="text-[#0ddc90]" />
                     </div>
-                    <h3 className="text-lg font-bold text-emerald-800 mb-1">Message Sent!</h3>
-                    <p className="text-emerald-600 text-sm">We have received your query and will get back to you shortly.</p>
+                    <h3 className="text-base font-semibold text-slate-900 mb-1">Message Sent!</h3>
+                    <p className="text-[#0ddc90] text-sm">We have received your query and will get back to you shortly.</p>
                     <button
                         onClick={() => setStatus('idle')}
-                        className="mt-4 text-sm font-medium text-emerald-700 hover:text-emerald-800 underline"
+                        className="mt-4 text-sm font-medium text-blue-700 hover:text-blue-800 underline"
                     >
                         Send another message
                     </button>
@@ -124,43 +124,43 @@ function ContactForm() {
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Subject</label>
                         <input
                             type="text"
                             required
                             placeholder="e.g., Issue with Test #123"
                             value={formData.subject}
                             onChange={e => setFormData({ ...formData, subject: e.target.value })}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0a3a30]/20 focus:border-[#0a3a30] transition-all"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Message</label>
                         <textarea
                             required
                             rows={5}
                             placeholder="Describe your issue or query in detail..."
                             value={formData.message}
                             onChange={e => setFormData({ ...formData, message: e.target.value })}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0a3a30]/20 focus:border-[#0a3a30] transition-all resize-none"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none text-sm"
                         ></textarea>
                     </div>
 
                     {status === 'error' && (
-                        <div className="p-3 rounded bg-red-50 text-red-600 text-sm">
+                        <div className="p-3 rounded-md bg-red-50 text-red-600 text-sm border border-red-100">
                             {errorMsg || "Something went wrong. Please try again."}
                         </div>
                     )}
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-end pt-2">
                         <button
                             type="submit"
                             disabled={status === 'loading'}
-                            className="px-6 py-2 bg-[#0a3a30] text-white font-bold rounded-lg shadow-lg shadow-[#0a3a30]/10 hover:bg-[#0a3a30]/90 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-4 py-2 bg-blue-600 text-white font-medium text-sm rounded-md shadow-xs hover:bg-blue-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             {status === 'loading' ? 'Sending...' : (
                                 <>
-                                    Send Message <Send size={16} />
+                                    Send Message <Send size={14} />
                                 </>
                             )}
                         </button>
