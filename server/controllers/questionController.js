@@ -200,3 +200,30 @@ exports.bulkCreateQuestions = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 };
+
+exports.getQuestionBank = async (req, res) => {
+    try {
+        const { subject, page = 1, limit = 50 } = req.query;
+        let query = {};
+        
+        if (subject) {
+            query.subject = new RegExp('^' + subject + '$', 'i');
+        }
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const total = await Question.countDocuments(query);
+        const questions = await Question.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        res.json({
+            questions,
+            totalPages: Math.ceil(total / parseInt(limit)),
+            currentPage: parseInt(page),
+            total
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

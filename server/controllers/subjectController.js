@@ -1,5 +1,6 @@
 const Subject = require('../models/Subject');
 const Test = require('../models/Test');
+const Question = require('../models/Question');
 
 exports.createSubject = async (req, res) => {
     try {
@@ -38,7 +39,8 @@ exports.getAllSubjects = async (req, res) => {
         const subjectsWithCounts = await Promise.all(
             subjects.map(async (subject) => ({
                 ...subject,
-                testCount: await Test.countDocuments({ subject: subject.name })
+                testCount: await Test.countDocuments({ subject: subject.name }),
+                questionCount: await Question.countDocuments({ subject: subject.name })
             }))
         );
 
