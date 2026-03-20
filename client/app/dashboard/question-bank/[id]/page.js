@@ -10,15 +10,10 @@ export default function QuestionBankQuestionsPage() {
   const [subjectName, setSubjectName] = useState('');
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalQuestions, setTotalQuestions] = useState(0);
-
-  // States
   const [revisionMode, setRevisionMode] = useState(false);
-  // Store user answers: { questionId: "selectedOptionString" }
   const [userAnswers, setUserAnswers] = useState({});
 
   useEffect(() => {
@@ -27,7 +22,6 @@ export default function QuestionBankQuestionsPage() {
       try {
         let name = subjectName;
 
-        // Fetch subject name if not known
         if (!name) {
           const subRes = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/subjects`, {
             credentials: 'include'
@@ -69,7 +63,7 @@ export default function QuestionBankQuestionsPage() {
 
   const handleOptionSelect = (qId, option) => {
     if (revisionMode) return;
-    if (userAnswers[qId]) return; // prevent changing answer after selecting
+    if (userAnswers[qId]) return;
 
     setUserAnswers(prev => ({
       ...prev,
@@ -81,7 +75,6 @@ export default function QuestionBankQuestionsPage() {
     setUserAnswers({});
   };
 
-  // Switch modes
   const handleToggleMode = () => {
     setRevisionMode(!revisionMode);
   };
@@ -101,7 +94,6 @@ export default function QuestionBankQuestionsPage() {
           </div>
         </div>
 
-        {/* Mode Switcher */}
         {!loading && questions.length > 0 && (
           <div className="flex items-center bg-white rounded-lg p-1 border border-gray-200 shadow-xs w-full sm:w-auto">
             <button
@@ -163,7 +155,6 @@ export default function QuestionBankQuestionsPage() {
           {questions.map((q, index) => {
             const hasAnswered = !!userAnswers[q._id];
             const selectedOpt = userAnswers[q._id];
-            // Identify actual index via pagination offset
             const questionNumber = (currentPage - 1) * 50 + index + 1;
 
             return (
@@ -217,7 +208,7 @@ export default function QuestionBankQuestionsPage() {
                       }
                     }
 
-                    const optLetter = String.fromCharCode(65 + optIdx); // A, B, C, D
+                    const optLetter = String.fromCharCode(65 + optIdx);
 
                     return (
                       <div
@@ -256,7 +247,6 @@ export default function QuestionBankQuestionsPage() {
             );
           })}
 
-          {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center pt-8 pb-4">
               <div className="flex items-center gap-2">
