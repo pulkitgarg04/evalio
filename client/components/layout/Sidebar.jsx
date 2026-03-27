@@ -10,13 +10,15 @@ import {
   AlertCircle,
   LogOut,
   User,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { icon: Home, label: "Home", href: "/dashboard" },
   { icon: BookOpen, label: "Subjects", href: "/dashboard/subject" },
+  { icon: FileText, label: "Question Bank", href: "/dashboard/question-bank" },
   { icon: LayoutDashboard, label: "Statistics", href: "/dashboard/stats" },
   { icon: Clock, label: "History", href: "/dashboard/history" },
   { icon: User, label: "Profile", href: "/profile" },

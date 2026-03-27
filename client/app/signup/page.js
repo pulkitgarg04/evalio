@@ -148,7 +148,7 @@ export default function SignupPage() {
               id="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="aarav@example.com"
+              placeholder="aarav****.be**@chitkara.edu.in"
               type="email"
               required
             />

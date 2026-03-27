@@ -1,10 +1,15 @@
 import React from 'react';
 import Link from 'next/link';
-import { MoreVertical, LayoutGrid, List, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function SubjectGrid({ linkPrefix = '/dashboard/subject', filterByUserYear = true }) {
-    const [activeTab, setActiveTab] = React.useState('All');
+export function SubjectGrid({ 
+    linkPrefix = '/dashboard/subject', 
+    filterByUserYear = true,
+    title = 'My Subjects',
+    countLabel = 'Tests',
+    viewLabel = 'View Tests',
+    emptyLabel = 'tests'
+}) {
     const [subjects, setSubjects] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [userYear, setUserYear] = React.useState(1);
@@ -87,7 +92,7 @@ export function SubjectGrid({ linkPrefix = '/dashboard/subject', filterByUserYea
         <div className="flex flex-col h-full bg-transparent max-w-6xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900 tracking-tight mb-1">My Subjects</h1>
+                    <h1 className="text-2xl font-semibold text-slate-900 tracking-tight mb-1">{title}</h1>
                     <p className="text-sm text-slate-500">
                         {filterByUserYear ? `Year ${userYear} Curriculum` : 'All Years Curriculum'} • {subjects.length} Subjects Available
                     </p>
@@ -110,11 +115,13 @@ export function SubjectGrid({ linkPrefix = '/dashboard/subject', filterByUserYea
                                 </h3>
 
                                 <p className="text-[13px] text-slate-500 mb-5">
-                                    {subject.testCount > 0 ? `${subject.testCount} Tests` : 'No tests'}
+                                    {subject.questionCount !== undefined && countLabel === 'Questions'
+                                      ? (subject.questionCount > 0 ? `${subject.questionCount} Questions` : 'No questions')
+                                      : (subject.testCount > 0 ? `${subject.testCount} Tests` : `No ${emptyLabel}`)}
                                 </p>
 
                                 <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between text-[13px] font-medium">
-                                    <span className="text-slate-500 group-hover:text-[#0bc07d] transition-colors">View Tests</span>
+                                    <span className="text-slate-500 group-hover:text-[#0bc07d] transition-colors">{viewLabel}</span>
                                     <div className="text-slate-400 group-hover:text-[#0bc07d] transition-colors">
                                         &rarr;
                                     </div>
