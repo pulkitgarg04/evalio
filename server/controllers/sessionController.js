@@ -25,6 +25,18 @@ async function finalizeIfNeeded(session) {
     return session;
 }
 
+async function finalizeExpiredSessionsForUser(userId) {
+    const expiredSessions = await TestSession.find({
+        user: userId,
+        status: 'IN_PROGRESS',
+        endTime: { $lte: new Date() }
+    });
+
+    for (const session of expiredSessions) {
+        await finalizeSession(session, { status: 'EXPIRED' });
+    }
+}
+
 function buildCompletedSessionPayload(session, answerMap, state, analysis) {
     const remaining = new Date(session.endTime).getTime() - Date.now();
     const startedAtMs = new Date(session.startTime).getTime();
@@ -56,6 +68,8 @@ function buildCompletedSessionPayload(session, answerMap, state, analysis) {
 
 exports.getUserStats = async (req, res) => {
     try {
+        await finalizeExpiredSessionsForUser(req.userId);
+
         const sessions = await TestSession.find({
             user: req.userId,
             status: { $in: ['SUBMITTED', 'EXPIRED'] }
@@ -124,6 +138,8 @@ exports.getUserStats = async (req, res) => {
 
 exports.getUserHistory = async (req, res) => {
     try {
+        await finalizeExpiredSessionsForUser(req.userId);
+
         const sessions = await TestSession.find({
             user: req.userId,
             status: { $in: ['SUBMITTED', 'EXPIRED'] }

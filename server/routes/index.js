@@ -6,7 +6,6 @@ const userRoutes = require('./user');
 const subjectRoutes = require('./subjectRoutes');
 const testRoutes = require('./tests');
 const questionRoutes = require('./questions');
-const historyRoutes = require('./history');
 const contactRoutes = require('./contact');
 const sessionRoutes = require('./sessionRoutes');
 
@@ -15,7 +14,6 @@ router.use('/users', userRoutes);
 router.use('/subjects', subjectRoutes);
 router.use('/tests', testRoutes);
 router.use('/questions', questionRoutes);
-router.use('/history', historyRoutes);
 router.use('/contact', contactRoutes);
 router.use('/sessions', sessionRoutes);
 
