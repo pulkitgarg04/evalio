@@ -91,8 +91,8 @@ export function HistoryList() {
                             </div>
                             
                             <div className="col-span-3">
-                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${session.status === 'SUBMITTED' ? 'border-emerald-200 text-emerald-700 bg-emerald-50/50' : 'border-amber-200 text-amber-700 bg-amber-50/50'}`}>
-                                    {session.status === 'SUBMITTED' ? 'Completed' : 'In Progress'}
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${(session.status === 'SUBMITTED' || session.status === 'EXPIRED') ? 'border-emerald-200 text-emerald-700 bg-emerald-50/50' : 'border-amber-200 text-amber-700 bg-amber-50/50'}`}>
+                                    {(session.status === 'SUBMITTED' || session.status === 'EXPIRED') ? 'Completed' : 'In Progress'}
                                 </span>
                             </div>
 
