@@ -6,11 +6,12 @@ async function sendVerificationMail(user) {
     if (!user) throw new Error("User not provided");
     if (!user.email) throw new Error("User email missing");
 
-    const token = jwt.sign(
-        { user_id: user._id, email: user.email },
-        config.JWT_TOKEN_SIGNUP_MAIL_SECRET,
-        { expiresIn: "5m" }
-    );
+    const token = jwt.sign({
+            user_id: user._id,
+            email: user.email
+        }, config.JWT_RESET_PASSWORD_SECRET, {
+            expiresIn: "5m"
+        });
 
     const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",

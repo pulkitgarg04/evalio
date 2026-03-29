@@ -55,11 +55,6 @@ const testSessionSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-testSessionSchema.index({
-    user: 1,
-    test: 1,
-    status: 1
-});
 const TestSession = mongoose.model('TestSession', testSessionSchema);
 
 module.exports = TestSession;

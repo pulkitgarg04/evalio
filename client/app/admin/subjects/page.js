@@ -1,188 +1,265 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { Trash2, Plus, BookOpen, AlertCircle, CheckCircle } from 'lucide-react';
+
+import React, { useCallback, useEffect, useState } from "react";
+import { AlertCircle, BookOpen, CheckCircle, Plus, Trash2 } from "lucide-react";
 
 export default function SubjectsPage() {
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-    const [newSubject, setNewSubject] = useState('');
-    const [year, setYear] = useState(1);
     const [adding, setAdding] = useState(false);
 
-    useEffect(() => {
-        fetchSubjects();
-    }, []);
+    const [newSubject, setNewSubject] = useState("");
+    const [year, setYear] = useState(1);
 
-    const fetchSubjects = async () => {
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+
+    const clearNotices = () => {
+        setError("");
+        setSuccess("");
+    };
+
+    const fetchSubjects = useCallback(async () => {
         try {
+            setLoading(true);
+            clearNotices();
+
             const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/subjects`);
-            if (!res.ok) throw new Error('Failed to fetch subjects');
+            if (!res.ok) {
+                throw new Error("Failed to fetch subjects");
+            }
+
             const data = await res.json();
-            setSubjects(data);
+            setSubjects(Array.isArray(data) ? data : []);
         } catch (err) {
-            setError(err.message);
+            setError(err.message || "Unable to fetch subjects");
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const handleAddSubject = async (e) => {
-        e.preventDefault();
-        setAdding(true);
-        setError('');
-        setSuccess('');
+    useEffect(() => {
+        fetchSubjects();
+    }, [fetchSubjects]);
+
+    const handleAddSubject = async (event) => {
+        event.preventDefault();
+        clearNotices();
+
+        const trimmedSubject = newSubject.trim();
+        if (!trimmedSubject) {
+            setError("Subject name is required");
+            return;
+        }
 
         try {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (!user._id) throw new Error("You must be logged in as admin");
+            setAdding(true);
+
+            const currentUserStr = localStorage.getItem("user");
+            if (!currentUserStr) {
+                throw new Error("You must be logged in as admin");
+            }
+
+            const currentUser = JSON.parse(currentUserStr);
+            const userId = currentUser._id || currentUser.user_id;
+            if (!userId) {
+                throw new Error("You must be logged in as admin");
+            }
 
             const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/subjects`, {
-                method: 'POST',
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json',
-                    'userId': user._id
+                    "Content-Type": "application/json",
+                    userId
                 },
-                body: JSON.stringify({ name: newSubject, year: parseInt(year) })
+                body: JSON.stringify({
+                    name: trimmedSubject,
+                    year: Number(year)
+                })
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to add subject');
+            if (!res.ok) {
+                throw new Error(data?.error || "Failed to create subject");
+            }
 
-            setSuccess('Subject added successfully');
-            setNewSubject('');
+            setSuccess(data?.message || "Subject created successfully");
+            setNewSubject("");
             setYear(1);
-            fetchSubjects();
+            await fetchSubjects();
         } catch (err) {
-            setError(err.message);
+            setError(err.message || "Unable to create subject");
         } finally {
             setAdding(false);
         }
     };
 
-    const handleDeleteSubject = async (id) => {
-        if (!confirm('Are you sure you want to delete this subject?')) return;
+    const handleDeleteSubject = async (subjectId) => {
+        clearNotices();
+
+        const shouldDelete = window.confirm("Delete this subject? This action cannot be undone.");
+        if (!shouldDelete) {
+            return;
+        }
 
         try {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/subjects/${id}`, {
-                method: 'DELETE',
+            const currentUserStr = localStorage.getItem("user");
+            if (!currentUserStr) {
+                throw new Error("You must be logged in as admin");
+            }
+
+            const currentUser = JSON.parse(currentUserStr);
+            const userId = currentUser._id || currentUser.user_id;
+            if (!userId) {
+                throw new Error("You must be logged in as admin");
+            }
+
+            const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/subjects/${subjectId}`, {
+                method: "DELETE",
                 headers: {
-                    'userId': user._id
+                    userId
                 }
             });
 
+            const data = await res.json();
             if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Failed to delete subject');
+                throw new Error(data?.error || "Failed to delete subject");
             }
 
-            setSuccess('Subject deleted');
-            fetchSubjects();
+            setSuccess(data?.message || "Subject deleted successfully");
+            setSubjects((prevSubjects) => prevSubjects.filter((subject) => subject._id !== subjectId));
         } catch (err) {
-            setError(err.message);
+            setError(err.message || "Unable to delete subject");
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="w-10 h-10 border-4 border-[#0a3a30] border-t-transparent rounded-full animate-spin"></div>
-            </div>
-        );
-    }
-
     return (
-        <div className="max-w-4xl mx-auto p-8">
-            <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-emerald-50 text-[#0a3a30] rounded-2xl">
-                    <BookOpen size={28} />
-                </div>
+        <div className="space-y-6 pb-10">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#0a3a30]">Manage Subjects</h1>
-                    <p className="text-gray-500">Add or remove subjects for questions</p>
+                    <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Subjects</h2>
+                    <p className="text-sm text-slate-500">Manage subject catalog for tests and questions.</p>
+                </div>
+                <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-3 py-1.5 text-sm font-semibold text-emerald-700">
+                    Total Subjects: {subjects.length}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-1">
-                    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm sticky top-8">
-                        <h3 className="font-bold text-gray-800 mb-4">Add New Subject</h3>
-                        <form onSubmit={handleAddSubject} className="space-y-4">
-                            <div>
-                                <label htmlFor="subjectName" className="text-sm font-semibold text-gray-600 block mb-1">Subject Name</label>
-                                <input
-                                    id="subjectName"
-                                    type="text"
-                                    value={newSubject}
-                                    onChange={(e) => setNewSubject(e.target.value)}
-                                    placeholder="e.g. Mathematics"
-                                    className="w-full h-12 rounded-xl border border-gray-200 px-4 focus:border-[#0a3a30] focus:ring-1 focus:ring-[#0a3a30] transition-all"
-                                    required
-                                />
-                            </div>
+            <form
+                onSubmit={handleAddSubject}
+                className="rounded-md border border-gray-200 bg-white p-4 shadow-xs sm:p-5"
+            >
+                <div className="grid gap-3 sm:grid-cols-[1fr_140px_auto]">
+                    <input
+                        type="text"
+                        value={newSubject}
+                        onChange={(e) => setNewSubject(e.target.value)}
+                        placeholder="Enter subject name"
+                        className="w-full rounded-md border border-gray-200 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0ddc90]"
+                    />
 
-                            <div>
-                                <label htmlFor="year" className="text-sm font-semibold text-gray-600 block mb-1">Year</label>
-                                <select
-                                    id="year"
-                                    value={year}
-                                    onChange={(e) => setYear(e.target.value)}
-                                    className="w-full h-12 rounded-xl border border-gray-200 px-4 focus:border-[#0a3a30] focus:ring-1 focus:ring-[#0a3a30] transition-all bg-white"
-                                >
-                                    {[1, 2, 3, 4].map(y => (
-                                        <option key={y} value={y}>Year {y}</option>
-                                    ))}
-                                </select>
-                            </div>
+                    <select
+                        value={year}
+                        onChange={(e) => setYear(Number(e.target.value))}
+                        className="rounded-md border border-gray-200 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-[#0ddc90]"
+                    >
+                        {[1, 2, 3, 4, 5].map((yr) => (
+                            <option key={yr} value={yr}>
+                                Year {yr}
+                            </option>
+                        ))}
+                    </select>
 
-                            <button
-                                type="submit"
-                                disabled={adding || !newSubject.trim()}
-                                className="w-full h-12 rounded-xl bg-[#0a3a30] text-white font-bold shadow-lg shadow-emerald-900/10 hover:bg-[#022c22] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                                {adding ? 'Adding...' : <><Plus size={18} /> Add Subject</>}
-                            </button>
-                        </form>
-                        {error && <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium flex items-center gap-2"><AlertCircle size={16} /> {error}</div>}
-                        {success && <div className="mt-4 p-3 bg-green-50 text-green-600 rounded-xl text-sm font-medium flex items-center gap-2"><CheckCircle size={16} /> {success}</div>}
-                    </div>
+                    <button
+                        type="submit"
+                        disabled={adding}
+                        className="inline-flex items-center justify-center gap-2 rounded-md bg-[#0ddc90] px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-[#0bc07d] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <Plus size={16} />
+                        {adding ? "Adding..." : "Add Subject"}
+                    </button>
                 </div>
+            </form>
 
-                <div className="md:col-span-2 space-y-4">
-                    <h3 className="font-bold text-gray-800 mb-2">Existing Subjects ({subjects.length})</h3>
-                    {subjects.length === 0 ? (
-                        <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-gray-400">
-                            <BookOpen size={48} className="mx-auto mb-3 opacity-20" />
-                            <p>No subjects found. Add one to get started.</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {subjects.map((subject) => (
-                                <div key={subject._id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between group hover:border-[#0a3a30] transition-colors">
-                                    <div>
-                                        <h4 className="font-bold text-gray-800">{subject.name}</h4>
-                                        <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100">
-                                                Year {subject.year || 1}
-                                            </span>
-                                            <p className="text-xs text-gray-400 font-mono">
-                                                Questions: {subject.questionCount}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => handleDeleteSubject(subject._id)}
-                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                        title="Delete Subject"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+            {error && (
+                <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <AlertCircle size={16} />
+                    <span>{error}</span>
+                </div>
+            )}
+
+            {success && (
+                <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                    <CheckCircle size={16} />
+                    <span>{success}</span>
+                </div>
+            )}
+
+            <div className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-xs">
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-160 text-left">
+                        <thead className="border-b border-gray-200 bg-gray-50/50">
+                            <tr>
+                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">Subject</th>
+                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">Year</th>
+                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">Tests</th>
+                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wide text-gray-500">Questions</th>
+                                <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wide text-gray-500">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-gray-100">
+                            {loading ? (
+                                Array.from({ length: 6 }).map((_, row) => (
+                                    <tr key={row} className="animate-pulse">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-md bg-gray-100" />
+                                                <div className="h-4 w-32 rounded bg-gray-200" />
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4"><div className="h-4 w-14 rounded bg-gray-100" /></td>
+                                        <td className="px-6 py-4"><div className="h-4 w-8 rounded bg-gray-100" /></td>
+                                        <td className="px-6 py-4"><div className="h-4 w-10 rounded bg-gray-100" /></td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="inline-flex h-8 w-20 rounded-md bg-gray-100" />
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : subjects.length > 0 ? (
+                                subjects.map((subject) => (
+                                    <tr key={subject._id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <span className="rounded-md bg-emerald-50 p-2 text-emerald-700">
+                                                    <BookOpen size={16} />
+                                                </span>
+                                                <span className="text-sm font-semibold text-slate-800">{subject.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-600">Year {subject.year || 1}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-600">{subject.testCount || 0}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-600">{subject.questionCount || 0}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button
+                                                onClick={() => handleDeleteSubject(subject._id)}
+                                                className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100"
+                                            >
+                                                <Trash2 size={14} />
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">
+                                        No subjects found. Add one to get started.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

@@ -36,6 +36,7 @@ exports.getAllSubjects = async (req, res) => {
 
         const subjects = await Subject.find(query).sort({ name: 1 }).lean();
 
+        // For each subject, we are counting the no. of tests and questions associated
         const subjectsWithCounts = await Promise.all(
             subjects.map(async (subject) => ({
                 ...subject,

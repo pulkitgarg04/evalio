@@ -53,10 +53,7 @@ function buildCompletedSessionPayload(session, answerMap, state, analysis) {
         })),
         state: state ? {
             marked: state.marked,
-            currentQuestionIndex: state.currentQuestionIndex,
-            fullscreenExitedAt: state.fullscreenExitedAt,
-            fullscreenDeadlineAt: state.fullscreenDeadlineAt,
-            fullscreenWarnings: state.fullscreenWarnings
+            currentQuestionIndex: state.currentQuestionIndex
         } : null,
         resultAnalysis: analysis.resultAnalysis,
         topicAnalysis: analysis.topicAnalysis,
@@ -197,10 +194,7 @@ exports.getSession = async (req, res) => {
             })),
             state: {
                 marked: ensuredState?.marked || [],
-                currentQuestionIndex: ensuredState?.currentQuestionIndex || 0,
-                fullscreenExitedAt: ensuredState?.fullscreenExitedAt || null,
-                fullscreenDeadlineAt: ensuredState?.fullscreenDeadlineAt || null,
-                fullscreenWarnings: ensuredState?.fullscreenWarnings || 0
+                currentQuestionIndex: ensuredState?.currentQuestionIndex || 0
             }
         });
     } catch (error) {
@@ -291,10 +285,7 @@ exports.updateState = async (req, res) => {
         const { sessionId } = req.params;
         const {
             currentQuestionIndex,
-            marked,
-            fullscreenExitedAt,
-            fullscreenDeadlineAt,
-            fullscreenWarnings
+            marked
         } = req.body;
 
         let session = await TestSession.findById(sessionId);
@@ -320,22 +311,6 @@ exports.updateState = async (req, res) => {
 
         if (Array.isArray(marked)) {
             nextStatePatch.marked = [...new Set(marked)];
-        }
-
-        if (fullscreenExitedAt !== undefined) {
-            nextStatePatch.fullscreenExitedAt = fullscreenExitedAt
-                ? new Date(fullscreenExitedAt)
-                : null;
-        }
-
-        if (fullscreenDeadlineAt !== undefined) {
-            nextStatePatch.fullscreenDeadlineAt = fullscreenDeadlineAt
-                ? new Date(fullscreenDeadlineAt)
-                : null;
-        }
-
-        if (fullscreenWarnings !== undefined) {
-            nextStatePatch.fullscreenWarnings = Number(fullscreenWarnings) || 0;
         }
 
         await updateSessionState(session, nextStatePatch);

@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
-import { Header } from '@/components/layout/Header';
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -34,21 +33,20 @@ export default function AdminLayout({ children }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50/30">
         <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-[#0a3a30] border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-[#0a3a30] font-medium">Verifying Admin Access...</p>
+          <div className="w-12 h-12 border-4 border-[#0ddc90] border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-slate-700 font-medium">Verifying Admin Access...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50/50">
+    <div className="flex min-h-screen bg-gray-50/30 font-sans text-slate-900">
       <AdminSidebar />
-      <div className="flex flex-1 flex-col pl-16 md:pl-20 transition-all duration-300">
-        <Header />
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+      <div className="flex flex-1 flex-col pl-64 transition-all duration-300">
+        <main className="flex-1 p-8 overflow-y-auto">
           {children}
         </main>
       </div>

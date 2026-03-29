@@ -14,7 +14,9 @@ exports.createTest = async (req, res) => {
             duration,
             questions
         });
+
         await newTest.save();
+        
         res.status(201).json(newTest);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -24,14 +26,16 @@ exports.createTest = async (req, res) => {
 exports.getTests = async (req, res) => {
     try {
         const { subject, year } = req.query;
+        
         let query = {};
         if (subject) {
             query.subject = subject;
         }
 
         if (year) {
-            const parsedYear = parseInt(year, 10);
-            if (!Number.isNaN(parsedYear)) {
+            const parsedYear = parseInt(year, 10); // string -> number (base 10)
+            
+            if (parsedYear > 0) {
                 const subjectsForYear = await Subject.find({ year: parsedYear }).select('name -_id').lean();
                 const subjectNames = subjectsForYear.map((s) => s.name);
 
@@ -60,14 +64,38 @@ exports.getTestById = async (req, res) => {
         }
 
         const questions = await Question.find({ questionId: { $in: test.questions } });
-        const orderedQuestions = test.questions.map(id => questions.find(q => q.questionId === id)).filter(Boolean);
+        const orderedQuestions = test.questions.map(id => questions.find(q => q.questionId === id)).filter(Boolean); // filter to remove any missing questions
 
-        const testObj = test.toObject();
-        testObj.questions = orderedQuestions;
-
-        res.json(testObj);
+        res.json({
+            ...test.toObject(),
+            questions: orderedQuestions
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+};
+
+exports.updateTest = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, subject, description, duration, questions } = req.body;
+
+        const test = await Test.findById(id);
+        if (!test) {
+            return res.status(404).json({ message: 'Test not found' });
+        }
+
+        if (title !== undefined) test.title = title;
+        if (subject !== undefined) test.subject = subject;
+        if (description !== undefined) test.description = description;
+        if (duration !== undefined) test.duration = duration;
+        if (Array.isArray(questions)) test.questions = questions;
+
+        await test.save();
+
+        return res.status(200).json(test);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
     }
 };
 
@@ -92,6 +120,7 @@ exports.startTestSession = async (req, res) => {
 
             if (remaining > 0) {
                 await ensureSessionState(existingSession);
+
                 return res.status(200).json({
                     message: "Resuming test session",
                     sessionId: existingSession._id,
@@ -105,7 +134,7 @@ exports.startTestSession = async (req, res) => {
         }
 
         const durationInMinutes = test.duration || 30;
-        const endTime = new Date(Date.now() + durationInMinutes * 60000);
+        const endTime = new Date(Date.now() + durationInMinutes * 60000); // 60,000 milliseconds
 
         const newSession = new TestSession({
             user: userId,

@@ -67,11 +67,8 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 flex flex-col bg-[#f8f9fa] border-r border-gray-200">
       <div className="px-6 py-6 border-b border-transparent">
-        <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-\[#0ddc90\] text-slate-900 rounded-lg flex items-center justify-center text-white font-bold">
-                E
-            </div>
-            <span className="text-xl font-semibold text-slate-800 tracking-tight">Evalio</span>
+        <Link href="/dashboard" className="flex items-center">
+            <span className="text-2xl font-semibold text-slate-800 tracking-tight">Evalio</span>
         </Link>
       </div>
 

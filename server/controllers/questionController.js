@@ -1,11 +1,12 @@
 const Question = require('../models/Question');
 const Subject = require('../models/Subject');
+const Test = require('../models/Test');
 
 const generateQuestionId = async (subjectName) => {
     const subject = await Subject.findOneAndUpdate(
         { name: subjectName },
         { $inc: { questionCount: 1 } },
-        { new: true }
+        { new: true } // return the updated document
     );
 
     if (!subject) {
@@ -35,7 +36,9 @@ exports.createQuestion = async (req, res) => {
             topic,
             subTopic
         });
+
         await newQuestion.save();
+        
         res.status(201).json(newQuestion);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -53,7 +56,6 @@ exports.generateQuestions = async (req, res) => {
         if (subTopic) baseQuery.subTopic = new RegExp(subTopic, 'i');
 
         if (excludeUsed) {
-            const Test = require('../models/Test');
             const allTests = await Test.find({}, 'questions');
             const usedQuestionIds = allTests.reduce((acc, test) => {
                 return acc.concat(test.questions);
@@ -203,11 +205,17 @@ exports.bulkCreateQuestions = async (req, res) => {
 
 exports.getQuestionBank = async (req, res) => {
     try {
-        const { subject, page = 1, limit = 50 } = req.query;
+        const { subject, page = 1, limit = 50, excludeUsed } = req.query;
         let query = {};
         
         if (subject) {
             query.subject = new RegExp('^' + subject + '$', 'i');
+        }
+
+        if (excludeUsed === 'true') {
+            const allTests = await Test.find({}, 'questions').lean();
+            const usedQuestionIds = allTests.reduce((acc, test) => acc.concat(test.questions || []), []);
+            query.questionId = { $nin: usedQuestionIds };
         }
 
         const skip = (parseInt(page) - 1) * parseInt(limit);

@@ -37,7 +37,9 @@ exports.updateProfile = async (req,res) => {
         
         if(name) user.name = name;
         if(study_year) user.study_year = study_year;
+
         await user.save();
+        
         res.status(200).send({ message: "Profile updated successfully"});
     } catch (err) {
         res.status(500).send(err);

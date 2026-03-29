@@ -1,4 +1,7 @@
 const User = require('../models/User');
+const LoginActivity = require('../models/LoginActivity');
+const TestSession = require('../models/TestSession');
+const Test = require('../models/Test');
 const sendVerificationMail = require('../utils/sendVerificationMail');
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -64,6 +67,17 @@ exports.login = async (req, res) => {
         }
 
         const token = jwt.sign({ user_id: user._id }, config.JWT_TOKEN_SECRET, { expiresIn: '30d' });
+
+        user.lastLogin = new Date();
+        await user.save();
+
+        await LoginActivity.create({
+            user: user._id,
+            emailSnapshot: user.email,
+            nameSnapshot: user.name,
+            loggedInAt: user.lastLogin,
+            userAgent: req.headers['user-agent'] || ''
+        });
 
         res.cookie("token", token, {
             httpOnly: true,
@@ -133,6 +147,74 @@ exports.getAllUsers = async (req, res) => {
     }
 };
 
+exports.getAdminOverview = async (req, res) => {
+    try {
+        const [usersCount, testsCount, testsTakenCount, activeSessionsCount, recentLogins, recentTestSessions] = await Promise.all([
+            User.countDocuments(),
+            Test.countDocuments(),
+            TestSession.countDocuments({ status: { $in: ['SUBMITTED', 'EXPIRED'] } }),
+            TestSession.countDocuments({ status: 'IN_PROGRESS' }),
+            LoginActivity.find({})
+                .sort({ loggedInAt: -1 })
+                .limit(15)
+                .populate('user', 'name email role')
+                .lean(),
+            TestSession.find({ status: { $in: ['SUBMITTED', 'EXPIRED'] } })
+                .sort({ submittedAt: -1, updatedAt: -1 })
+                .limit(15)
+                .populate('user', 'name email role')
+                .populate('test', 'title subject duration')
+                .lean()
+        ]);
+
+        const normalizedLogins = recentLogins.map((item) => ({
+            id: item._id,
+            loggedInAt: item.loggedInAt,
+            userAgent: item.userAgent,
+            user: {
+                id: item.user?._id,
+                name: item.user?.name || item.nameSnapshot || 'Unknown User',
+                email: item.user?.email || item.emailSnapshot || '',
+                role: item.user?.role || 'student'
+            }
+        }));
+
+        const normalizedSessions = recentTestSessions.map((item) => ({
+            id: item._id,
+            submittedAt: item.submittedAt || item.updatedAt,
+            status: item.status,
+            score: item.score,
+            totalQuestions: item.totalQuestions,
+            correctAnswers: item.correctAnswers,
+            user: {
+                id: item.user?._id,
+                name: item.user?.name || 'Unknown User',
+                email: item.user?.email || '',
+                role: item.user?.role || 'student'
+            },
+            test: {
+                id: item.test?._id,
+                title: item.test?.title || 'Deleted Test',
+                subject: item.test?.subject || 'Unknown',
+                duration: item.test?.duration || 0
+            }
+        }));
+
+        return res.status(200).json({
+            stats: {
+                usersCount,
+                testsCount,
+                testsTakenCount,
+                activeSessionsCount
+            },
+            recentLogins: normalizedLogins,
+            recentTestSessions: normalizedSessions
+        });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+
 exports.resetPasswordMail = async (req, res) => {
     try {
         const { email } = req.body;
@@ -191,3 +273,32 @@ exports.logout = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 }
+
+exports.deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await User.findByIdAndDelete(id);
+        res.status(200).json({ message: "User deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.updateUserFromAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, role, study_year } = req.body;
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+        if (name) user.name = name;
+        if (email) user.email = email;
+        if (role) user.role = role;
+        if (study_year) user.study_year = study_year;
+        await user.save();
+        const userWithoutPassword = user.toObject();
+        delete userWithoutPassword.password;
+        res.status(200).json(userWithoutPassword);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

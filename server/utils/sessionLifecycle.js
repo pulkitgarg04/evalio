@@ -2,11 +2,8 @@ const Test = require('../models/Test');
 const Question = require('../models/Question');
 const TestAnswer = require('../models/TestAnswer');
 const TestSession = require('../models/TestSession');
-const TestSessionState = require('../models/TestSessionState');
 const config = require('../config/config');
 const { getRedisClient } = require('./redisClient');
-
-const SESSION_STATE_TTL_MS = 24 * 60 * 60 * 1000;
 
 function getSessionStateKey(sessionId) {
     return `session:${sessionId}`;
@@ -25,35 +22,7 @@ function buildDefaultState(session) {
         answers: {},
         marked: [],
         currentQuestionIndex: 0,
-        fullscreenExitedAt: null,
-        fullscreenDeadlineAt: null,
-        fullscreenWarnings: 0,
         lastActiveAt: new Date().toISOString()
-    };
-}
-
-function mapStateDocumentToObject(state) {
-    if (!state) {
-        return null;
-    }
-
-    return {
-        user: state.user?.toString(),
-        test: state.test?.toString(),
-        answers: Object.fromEntries(
-            Array.from(state.answers.entries()).map(([questionId, selectedOption]) => [
-                questionId,
-                Number(selectedOption)
-            ])
-        ),
-        marked: Array.isArray(state.marked) ? state.marked : [],
-        currentQuestionIndex: Number.isInteger(state.currentQuestionIndex)
-            ? state.currentQuestionIndex
-            : 0,
-        fullscreenExitedAt: state.fullscreenExitedAt || null,
-        fullscreenDeadlineAt: state.fullscreenDeadlineAt || null,
-        fullscreenWarnings: Number(state.fullscreenWarnings) || 0,
-        lastActiveAt: state.updatedAt || null
     };
 }
 
@@ -78,9 +47,6 @@ async function getStateFromRedis(sessionId) {
             currentQuestionIndex: Number.isInteger(parsed.currentQuestionIndex)
                 ? parsed.currentQuestionIndex
                 : 0,
-            fullscreenExitedAt: parsed.fullscreenExitedAt || null,
-            fullscreenDeadlineAt: parsed.fullscreenDeadlineAt || null,
-            fullscreenWarnings: Number(parsed.fullscreenWarnings) || 0,
             lastActiveAt: parsed.lastActiveAt || null
         };
     } catch (error) {
@@ -100,32 +66,6 @@ async function saveStateToRedis(session, state) {
     });
 
     return true;
-}
-
-async function ensureMongoSessionState(session) {
-    const expiresAt = new Date(new Date(session.endTime).getTime() + SESSION_STATE_TTL_MS);
-
-    return TestSessionState.findOneAndUpdate(
-        { session: session._id },
-        {
-            $setOnInsert: {
-                user: session.user,
-                test: session.test,
-                answers: {},
-                marked: [],
-                currentQuestionIndex: 0
-            },
-            $set: {
-                user: session.user,
-                test: session.test,
-                expiresAt
-            }
-        },
-        {
-            upsert: true,
-            new: true
-        }
-    );
 }
 
 async function getOrderedQuestionsForTest(testId) {
@@ -155,22 +95,12 @@ async function ensureSessionState(session) {
         return state;
     }
 
-    const dbState = await ensureMongoSessionState(session);
-    return mapStateDocumentToObject(dbState);
+    return state;
 }
 
 async function getSessionStateForSession(sessionId) {
     const redisState = await getStateFromRedis(sessionId.toString());
-    if (redisState) {
-        return redisState;
-    }
-
-    const state = await TestSessionState.findOne({ session: sessionId });
-    if (!state) {
-        return null;
-    }
-
-    return mapStateDocumentToObject(state);
+    return redisState || null;
 }
 
 async function getAnswerMapForSession(sessionId) {
@@ -218,14 +148,7 @@ async function upsertAnswerInSessionState(session, questionId, selectedOption) {
         return nextState;
     }
 
-    const dbState = await ensureMongoSessionState(session);
-    if (selectedOption === undefined || selectedOption === null || selectedOption === '') {
-        dbState.answers.delete(questionId);
-    } else {
-        dbState.answers.set(questionId, Number(selectedOption));
-    }
-    await dbState.save();
-    return mapStateDocumentToObject(dbState);
+    return nextState;
 }
 
 async function updateSessionState(session, partialState = {}) {
@@ -242,30 +165,7 @@ async function updateSessionState(session, partialState = {}) {
         return nextState;
     }
 
-    const dbState = await ensureMongoSessionState(session);
-
-    if (partialState.currentQuestionIndex !== undefined) {
-        dbState.currentQuestionIndex = partialState.currentQuestionIndex;
-    }
-
-    if (partialState.marked !== undefined) {
-        dbState.marked = partialState.marked;
-    }
-
-    if (partialState.fullscreenExitedAt !== undefined) {
-        dbState.fullscreenExitedAt = partialState.fullscreenExitedAt;
-    }
-
-    if (partialState.fullscreenDeadlineAt !== undefined) {
-        dbState.fullscreenDeadlineAt = partialState.fullscreenDeadlineAt;
-    }
-
-    if (partialState.fullscreenWarnings !== undefined) {
-        dbState.fullscreenWarnings = partialState.fullscreenWarnings;
-    }
-
-    await dbState.save();
-    return mapStateDocumentToObject(dbState);
+    return nextState;
 }
 
 async function clearSessionState(sessionId) {
@@ -273,8 +173,6 @@ async function clearSessionState(sessionId) {
     if (client) {
         await client.del(getSessionStateKey(sessionId.toString()));
     }
-
-    await TestSessionState.deleteOne({ session: sessionId });
 }
 
 function buildQuestionAnalysis(orderedQuestions, answerMap) {
