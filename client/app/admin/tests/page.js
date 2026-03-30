@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Edit, Plus } from 'lucide-react';
+import { BookOpen, Edit, Plus, Trash2 } from 'lucide-react';
 
 export default function TestManagementPage() {
     const router = useRouter();
@@ -32,6 +32,31 @@ export default function TestManagementPage() {
             setError(err.message || 'Failed to fetch tests');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeleteTest = async (testId, testTitle) => {
+        if (!confirm(`Are you sure you want to delete "${testTitle}"?`)) {
+            return;
+        }
+
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/tests/${testId}`, {
+                method: 'DELETE',
+                headers: {
+                    userId: user._id
+                }
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data?.error || 'Failed to delete test');
+            }
+
+            setTests((prev) => prev.filter((t) => t._id !== testId));
+        } catch (err) {
+            setError(err.message || 'Failed to delete test');
         }
     };
 
@@ -104,7 +129,7 @@ export default function TestManagementPage() {
                             <p className="mt-3 line-clamp-2 text-sm text-slate-500">{test.description || 'No description provided.'}</p>
                         </div>
 
-                        <div className="mt-6 grid grid-cols-2 gap-2 border-t border-gray-100 pt-4">
+                        <div className="mt-6 grid grid-cols-[1fr_1fr_auto] gap-2 border-t border-gray-100 pt-4">
                             <button
                                 onClick={() => router.push(`/admin/tests/${test._id}/edit`)}
                                 className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-200 bg-white py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
@@ -116,6 +141,12 @@ export default function TestManagementPage() {
                                 className="rounded-md border border-gray-200 bg-gray-50 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                             >
                                 View Questions
+                            </button>
+                            <button
+                                onClick={() => handleDeleteTest(test._id, test.title)}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100"
+                            >
+                                <Trash2 size={15} />
                             </button>
                         </div>
                     </div>

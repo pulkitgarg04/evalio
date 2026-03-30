@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import useTestStore from '@/store/useTestStore';
-import { Trophy, ArrowLeft, CheckCircle, XCircle, Clock, Target, AlertTriangle } from 'lucide-react';
+import { Trophy, ArrowLeft, CheckCircle, XCircle, Clock, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function TestResults() {
@@ -9,9 +9,6 @@ export function TestResults() {
     answers,
     activeTest,
     resetTest,
-    topicAnalysis,
-    difficultyAnalysis,
-    weakTopics,
     summary,
     sessionMeta
   } = useTestStore();
@@ -101,79 +98,6 @@ export function TestResults() {
         </div>
       </div>
 
-      {weakTopics?.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex items-start gap-4 shadow-sm mb-8">
-          <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={20} />
-          <div>
-            <h3 className="text-sm font-bold text-amber-800 tracking-wide uppercase mb-1">Focus Topics</h3>
-            <p className="text-sm text-amber-700">
-              You may want to review: {weakTopics.map((topic) => `${topic.name} (${topic.incorrect} wrong)`).join(', ')}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-8">
-        {topicAnalysis?.length > 0 && (
-          <div className="bg-white p-6 rounded-xl shadow-xs border border-gray-200">
-            <h3 className="text-base font-semibold text-slate-800 mb-6 flex items-center gap-2">
-              Topic Analysis
-            </h3>
-            <div className="space-y-6">
-              {topicAnalysis.map((topic) => (
-                <div key={topic.name}>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-slate-700">{topic.name}</span>
-                    <span className={cn("font-semibold", topic.accuracy < 50 ? 'text-rose-500' : topic.accuracy < 80 ? 'text-amber-500' : 'text-[#0ddc90]')}>
-                      {topic.accuracy}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className={cn("h-full rounded-full transition-all duration-1000", topic.accuracy < 50 ? 'bg-rose-500' : topic.accuracy < 80 ? 'bg-amber-400' : 'bg-[#0ddc90]')}
-                      style={{ width: `${topic.accuracy}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between mt-1.5 text-xs text-slate-400">
-                    <span>{topic.correct} / {topic.total} Correct</span>
-                    {topic.incorrect > 0 && <span>{topic.incorrect} Incorrect</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {difficultyAnalysis?.length > 0 && (
-          <div className="bg-white p-6 rounded-xl shadow-xs border border-gray-200">
-            <h3 className="text-base font-semibold text-slate-800 mb-6 flex items-center gap-2">
-              Difficulty Analysis
-            </h3>
-            <div className="space-y-6">
-              {difficultyAnalysis.map((item) => (
-                <div key={item.name}>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-slate-700">{item.name}</span>
-                    <span className={cn("font-semibold", item.accuracy < 50 ? 'text-rose-500' : item.accuracy < 80 ? 'text-amber-500' : 'text-[#0ddc90]')}>
-                      {item.accuracy}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className={cn("h-full rounded-full transition-all duration-1000", item.accuracy < 50 ? 'bg-rose-500' : item.accuracy < 80 ? 'bg-amber-400' : 'bg-[#0ddc90]')}
-                      style={{ width: `${item.accuracy}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between mt-1.5 text-xs text-slate-400">
-                    <span>{item.correct} / {item.total} Correct</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}  
-      </div>
-
       <div>
         <h2 className="text-lg font-semibold text-slate-900 mb-4">Detailed Analysis</h2>
         <div className="space-y-6">
@@ -187,7 +111,7 @@ export function TestResults() {
                 <div className="flex items-start justify-between gap-4 mb-6">
                   <div className="flex items-start gap-3">
                     <span className={cn(
-                        "flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-sm font-semibold text-sm",
+                      "shrink-0 flex items-center justify-center w-7 h-7 rounded-sm font-semibold text-sm",
                         isCorrect ? "bg-emerald-100 text-emerald-700" : isSkipped ? "bg-slate-100 text-slate-500 border border-slate-200" : "bg-rose-100 text-rose-700"
                     )}>
                       {idx + 1}

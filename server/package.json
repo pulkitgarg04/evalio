@@ -5,7 +5,12 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "dev:sandbox": "DOTENV_CONFIG_PATH=.env.sandbox nodemon index.js",
+    "db:backup": "node scripts/backupDb.js",
+    "db:restore:sandbox": "node scripts/restoreSandboxDb.js",
+    "db:clone:sandbox": "npm run db:backup && npm run db:restore:sandbox",
+    "db:clone:url": "node scripts/cloneDbBetweenUrls.js"
   },
   "keywords": [],
   "author": "",
@@ -20,7 +25,6 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.5",
     "nodemailer": "^8.0.0",
-    "redis": "^5.8.2",
     "validator": "^13.15.26"
   }
 }

@@ -73,10 +73,10 @@ exports.login = async (req, res) => {
 
         await LoginActivity.create({
             user: user._id,
-            emailSnapshot: user.email,
-            nameSnapshot: user.name,
+            email: user.email,
+            name: user.name,
             loggedInAt: user.lastLogin,
-            userAgent: req.headers['user-agent'] || ''
+            userAgent: req.headers['user-agent'] || '' // The Navigator.userAgent read-only property of the Navigator interface returns the User-Agent (UA) string for the current browser.
         });
 
         res.cookie("token", token, {
@@ -167,19 +167,19 @@ exports.getAdminOverview = async (req, res) => {
                 .lean()
         ]);
 
-        const normalizedLogins = recentLogins.map((item) => ({
+        const allLogins = recentLogins.map((item) => ({
             id: item._id,
             loggedInAt: item.loggedInAt,
             userAgent: item.userAgent,
             user: {
                 id: item.user?._id,
-                name: item.user?.name || item.nameSnapshot || 'Unknown User',
-                email: item.user?.email || item.emailSnapshot || '',
+                name: item.user?.name || item.name || 'Unknown User',
+                email: item.user?.email || item.email || '',
                 role: item.user?.role || 'student'
             }
         }));
 
-        const normalizedSessions = recentTestSessions.map((item) => ({
+        const allSessions = recentTestSessions.map((item) => ({
             id: item._id,
             submittedAt: item.submittedAt || item.updatedAt,
             status: item.status,
@@ -207,8 +207,8 @@ exports.getAdminOverview = async (req, res) => {
                 testsTakenCount,
                 activeSessionsCount
             },
-            recentLogins: normalizedLogins,
-            recentTestSessions: normalizedSessions
+            recentLogins: allLogins,
+            recentTestSessions: allSessions
         });
     } catch (error) {
         return res.status(500).json({ error: error.message });
@@ -268,6 +268,7 @@ exports.logout = async (req, res) => {
             sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
             // lax: Same-site requests + top-level navigations (clicking a link). Blocks cross-site sub-requests like fetch, XHR, <img>
         });
+
         res.status(200).json({ message: "Logged out successfully" });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -288,15 +289,21 @@ exports.updateUserFromAdmin = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, email, role, study_year } = req.body;
+        
         const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: "User not found" });
+        
         if (name) user.name = name;
         if (email) user.email = email;
         if (role) user.role = role;
         if (study_year) user.study_year = study_year;
+        
         await user.save();
+        
         const userWithoutPassword = user.toObject();
+        
         delete userWithoutPassword.password;
+        
         res.status(200).json(userWithoutPassword);
     } catch (error) {
         res.status(500).json({ error: error.message });

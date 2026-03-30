@@ -2,7 +2,7 @@ const Question = require('../models/Question');
 const Test = require('../models/Test');
 const Subject = require('../models/Subject');
 const TestSession = require('../models/TestSession');
-const { ensureSessionState, finalizeSession } = require('../utils/sessionLifecycle');
+const { finalizeSession } = require('../utils/sessionLifecycle');
 
 exports.createTest = async (req, res) => {
     try {
@@ -99,6 +99,21 @@ exports.updateTest = async (req, res) => {
     }
 };
 
+exports.deleteTest = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const test = await Test.findByIdAndDelete(id);
+        if (!test) {
+            return res.status(404).json({ message: 'Test not found' });
+        }
+
+        return res.status(200).json({ message: 'Test deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+
 exports.startTestSession = async (req, res) => {
     try {
         const userId = req.userId;
@@ -119,8 +134,6 @@ exports.startTestSession = async (req, res) => {
             const remaining = new Date(existingSession.endTime).getTime() - Date.now();
 
             if (remaining > 0) {
-                await ensureSessionState(existingSession);
-
                 return res.status(200).json({
                     message: "Resuming test session",
                     sessionId: existingSession._id,
@@ -144,7 +157,6 @@ exports.startTestSession = async (req, res) => {
         });
 
         await newSession.save();
-        await ensureSessionState(newSession);
 
         res.status(201).json({
             message: "Test session started",

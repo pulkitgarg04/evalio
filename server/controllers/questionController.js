@@ -51,36 +51,36 @@ exports.generateQuestions = async (req, res) => {
 
         if (!subject) return res.status(400).json({ error: "Subject is required" });
 
-        let baseQuery = { subject: new RegExp(`^${subject}$`, 'i') };
-        if (topic) baseQuery.topic = new RegExp(topic, 'i');
-        if (subTopic) baseQuery.subTopic = new RegExp(subTopic, 'i');
+        const filter = { subject };
+        if (topic) filter.topic = topic;
+        if (subTopic) filter.subTopic = subTopic;
 
         if (excludeUsed) {
-            const allTests = await Test.find({}, 'questions');
-            const usedQuestionIds = allTests.reduce((acc, test) => {
-                return acc.concat(test.questions);
-            }, []);
-            baseQuery.questionId = { $nin: usedQuestionIds };
+            const tests = await Test.find({}, 'questions');
+            const usedIds = [];
+
+            for (const test of tests) {
+                usedIds.push(...test.questions);
+            }
+
+            filter.questionId = { $nin: usedIds }; // nin: not in
         }
 
-        let selectedQuestions = [];
+        const allQuestions = [];
 
-        for (const [level, count] of Object.entries(difficultyCounts || {})) {
-            const needed = parseInt(count);
-            if (needed > 0) {
-                const pipeline = [
-                    { $match: { ...baseQuery, difficulty: new RegExp(`^${level}$`, 'i') } },
-                    { $sample: { size: needed } }
-                ];
+        for (const difficulty of ['Easy', 'Medium', 'Hard']) {
+            const count = difficultyCounts[difficulty] || 0;
+            if (count > 0) {
+                const questions = await Question.aggregate([
+                    { $match: { ...filter, difficulty } },
+                    { $sample: { size: count } }
+                ]);
 
-                const randomBatch = await Question.aggregate(pipeline);
-
-                selectedQuestions = [...selectedQuestions, ...randomBatch];
+                allQuestions.push(...questions);
             }
         }
 
-        res.json(selectedQuestions);
-
+        res.json(allQuestions);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -92,31 +92,33 @@ exports.getAvailableCounts = async (req, res) => {
 
         if (!subject) return res.status(400).json({ error: "Subject is required" });
 
-        let baseQuery = { subject: new RegExp(`^${subject}$`, 'i') };
-        if (topic) baseQuery.topic = new RegExp(topic, 'i');
-        if (subTopic) baseQuery.subTopic = new RegExp(subTopic, 'i');
+        const filter = { subject };
+        if (topic) filter.topic = topic;
+        if (subTopic) filter.subTopic = subTopic;
 
         if (excludeUsed) {
-            const Test = require('../models/Test');
-            const allTests = await Test.find({}, 'questions');
-            const usedQuestionIds = allTests.reduce((acc, test) => {
-                return acc.concat(test.questions);
-            }, []);
-            baseQuery.questionId = { $nin: usedQuestionIds };
+            const tests = await Test.find({}, 'questions');
+            const usedIds = [];
+
+            for (const test of tests) {
+                usedIds.push(...test.questions);
+            }
+
+            filter.questionId = { $nin: usedIds };
         }
 
         const counts = await Question.aggregate([
-            { $match: baseQuery },
-            { $group: { _id: { $toLower: "$difficulty" }, count: { $sum: 1 } } }
+            { $match: filter },
+            { $group: { _id: '$difficulty', count: { $sum: 1 } } }
         ]);
 
         const result = { Easy: 0, Medium: 0, Hard: 0 };
-        counts.forEach(item => {
-            const diff = item._id ? (item._id.charAt(0).toUpperCase() + item._id.slice(1)) : 'Unknown';
-            if (result[diff] !== undefined) {
-                result[diff] = item.count;
-            }
-        });
+
+        for (const item of counts) {
+            if (item._id === 'Easy') result.Easy = item.count;
+            if (item._id === 'Medium') result.Medium = item.count;
+            if (item._id === 'Hard') result.Hard = item.count;
+        }
 
         res.json(result);
     } catch (error) {
@@ -130,7 +132,6 @@ exports.getQuestions = async (req, res) => {
         let query = {};
 
         if (excludeUsed === 'true') {
-            const Test = require('../models/Test');
             const allTests = await Test.find({}, 'questions');
             const usedQuestionIds = allTests.reduce((acc, test) => {
                 return acc.concat(test.questions);
@@ -154,21 +155,26 @@ exports.bulkCreateQuestions = async (req, res) => {
             return res.status(400).json({ error: "No questions provided" });
         }
 
-        const questionsBySubject = {};
-        for (const q of questions) {
-            if (!q.subject) {
+        const grouped = {};
+
+        for (const item of questions) {
+            if (!item.subject) {
                 return res.status(400).json({ error: "Subject is required for all questions" });
             }
-            if (!questionsBySubject[q.subject]) {
-                questionsBySubject[q.subject] = [];
+
+            if (!grouped[item.subject]) {
+                grouped[item.subject] = [];
             }
-            questionsBySubject[q.subject].push(q);
+
+            grouped[item.subject].push(item);
         }
 
         const finalQuestions = [];
 
-        for (const [subjectName, subjectQuestions] of Object.entries(questionsBySubject)) {
+        for (const subjectName in grouped) {
+            const subjectQuestions = grouped[subjectName];
             const count = subjectQuestions.length;
+
             const subject = await Subject.findOneAndUpdate(
                 { name: subjectName },
                 { $inc: { questionCount: count } },
@@ -179,11 +185,12 @@ exports.bulkCreateQuestions = async (req, res) => {
                 return res.status(400).json({ error: `Subject '${subjectName}' not found.` });
             }
 
-            let currentId = subject.questionCount - count + 1;
+            let nextId = subject.questionCount - count + 1;
+
             for (const q of subjectQuestions) {
-                q.questionId = `${subject.name.replace(/\s+/g, '')}-${currentId}`;
+                q.questionId = `${subject.name.replace(/\s+/g, '')}-${nextId}`;
                 finalQuestions.push(q);
-                currentId++;
+                nextId++;
             }
         }
 
@@ -194,7 +201,6 @@ exports.bulkCreateQuestions = async (req, res) => {
             count: createdQuestions.length,
             questions: createdQuestions
         });
-
     } catch (error) {
         if (error.code === 11000) {
             return res.status(400).json({ error: "Duplicate Question ID detected." });
@@ -206,29 +212,36 @@ exports.bulkCreateQuestions = async (req, res) => {
 exports.getQuestionBank = async (req, res) => {
     try {
         const { subject, page = 1, limit = 50, excludeUsed } = req.query;
-        let query = {};
-        
+        const query = {};
+
         if (subject) {
-            query.subject = new RegExp('^' + subject + '$', 'i');
+            query.subject = subject;
         }
 
         if (excludeUsed === 'true') {
-            const allTests = await Test.find({}, 'questions').lean();
-            const usedQuestionIds = allTests.reduce((acc, test) => acc.concat(test.questions || []), []);
-            query.questionId = { $nin: usedQuestionIds };
+            const tests = await Test.find({}, 'questions').lean();
+            const usedIds = [];
+
+            for (const test of tests) {
+                usedIds.push(...(test.questions || []));
+            }
+
+            query.questionId = { $nin: usedIds };
         }
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const pageNumber = parseInt(page, 10);
+        const limitNumber = parseInt(limit, 10);
+
         const total = await Question.countDocuments(query);
         const questions = await Question.find(query)
             .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(parseInt(limit));
+            .skip((pageNumber - 1) * limitNumber) // no. of documents to skip = (page - 1) * limit
+            .limit(limitNumber);
 
         res.json({
             questions,
-            totalPages: Math.ceil(total / parseInt(limit)),
-            currentPage: parseInt(page),
+            totalPages: Math.ceil(total / limitNumber),
+            currentPage: pageNumber,
             total
         });
     } catch (error) {

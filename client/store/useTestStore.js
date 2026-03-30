@@ -7,7 +7,8 @@ const buildQuestionsFromTest = (testData) => (
     options: question.options,
     difficulty: question.difficulty,
     topic: question.topic,
-    subTopic: question.subTopic
+    subTopic: question.subTopic,
+    correctAnswer: question.correctAnswer
   }))
 );
 
@@ -44,14 +45,53 @@ const buildAnswerMap = (sessionData) => {
   return initialAnswers;
 };
 
+const getSessionStorageKey = (sessionId) => `test-session:${sessionId}`;
+
+const readLocalSessionState = (sessionId) => {
+  if (typeof window === 'undefined' || !sessionId) return null;
+
+  try {
+    const raw = localStorage.getItem(getSessionStorageKey(sessionId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+
+    return {
+      answers: parsed.answers && typeof parsed.answers === 'object' ? parsed.answers : {},
+      marked: Array.isArray(parsed.marked) ? parsed.marked : [],
+      currentQuestionIndex: Number.isInteger(parsed.currentQuestionIndex)
+        ? parsed.currentQuestionIndex
+        : 0
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeLocalSessionState = (sessionId, state) => {
+  if (typeof window === 'undefined' || !sessionId) return;
+
+  try {
+    localStorage.setItem(getSessionStorageKey(sessionId), JSON.stringify(state));
+  } catch {
+    // Ignore storage failures.
+  }
+};
+
+const clearLocalSessionState = (sessionId) => {
+  if (typeof window === 'undefined' || !sessionId) return;
+
+  try {
+    localStorage.removeItem(getSessionStorageKey(sessionId));
+  } catch {
+    // Ignore storage failures.
+  }
+};
+
 const useTestStore = create((set, get) => ({
   activeTest: null,
   questions: [],
   answers: {},
   marked: [],
-  topicAnalysis: [],
-  difficultyAnalysis: [],
-  weakTopics: [],
   summary: null,
   resultAnalysis: [],
   sessionMeta: null,
@@ -72,11 +112,24 @@ const useTestStore = create((set, get) => ({
     }
 
     const sessionData = await sessionRes.json();
+    const isCompleted = sessionData.session.status === 'SUBMITTED' || sessionData.session.status === 'EXPIRED';
+
     const questions = sessionData.resultAnalysis
       ? buildQuestionsFromAnalysis(sessionData.resultAnalysis)
       : buildQuestionsFromTest(testData);
-    const answers = buildAnswerMap(sessionData);
-    const isCompleted = sessionData.session.status === 'SUBMITTED' || sessionData.session.status === 'EXPIRED';
+
+    const serverAnswers = buildAnswerMap(sessionData);
+    const localState = readLocalSessionState(sessionId);
+
+    const answers = !isCompleted && localState ? localState.answers : serverAnswers;
+    const marked = !isCompleted && localState ? localState.marked : (sessionData.state?.marked || []);
+    const currentQuestionIndex = !isCompleted && localState
+      ? localState.currentQuestionIndex
+      : (sessionData.state?.currentQuestionIndex || 0);
+
+    if (isCompleted) {
+      clearLocalSessionState(sessionId);
+    }
 
     set({
       activeTest: {
@@ -88,21 +141,26 @@ const useTestStore = create((set, get) => ({
       },
       questions,
       answers,
-      marked: sessionData.state?.marked || [],
-      topicAnalysis: sessionData.topicAnalysis || [],
-      difficultyAnalysis: sessionData.difficultyAnalysis || [],
-      weakTopics: sessionData.weakTopics || [],
+      marked,
       summary: sessionData.summary || null,
       resultAnalysis: sessionData.resultAnalysis || [],
       sessionMeta: {
         ...sessionData.session,
         timeTakenSeconds: sessionData.timeTakenSeconds ?? null
       },
-      currentQuestionIndex: sessionData.state?.currentQuestionIndex || 0,
+      currentQuestionIndex,
       status: isCompleted ? 'completed' : 'running',
       timeLeft: sessionData.remainingTime ?? (testData.duration || 30) * 60,
       error: null
     });
+
+    if (!isCompleted) {
+      writeLocalSessionState(sessionId, {
+        answers,
+        marked,
+        currentQuestionIndex
+      });
+    }
   },
 
   loadSession: async (sessionId) => {
@@ -126,6 +184,20 @@ const useTestStore = create((set, get) => ({
         ? buildQuestionsFromAnalysis(sessionData.resultAnalysis)
         : buildQuestionsFromTest(testData);
 
+      const isCompleted = sessionData.session.status === 'SUBMITTED' || sessionData.session.status === 'EXPIRED';
+      const serverAnswers = buildAnswerMap(sessionData);
+      const localState = readLocalSessionState(sessionId);
+
+      const answers = !isCompleted && localState ? localState.answers : serverAnswers;
+      const marked = !isCompleted && localState ? localState.marked : (sessionData.state?.marked || []);
+      const currentQuestionIndex = !isCompleted && localState
+        ? localState.currentQuestionIndex
+        : (sessionData.state?.currentQuestionIndex || 0);
+
+      if (isCompleted) {
+        clearLocalSessionState(sessionId);
+      }
+
       set({
         activeTest: {
           id: testData._id,
@@ -135,24 +207,27 @@ const useTestStore = create((set, get) => ({
           sessionId
         },
         questions,
-        answers: buildAnswerMap(sessionData),
-        marked: sessionData.state?.marked || [],
-        topicAnalysis: sessionData.topicAnalysis || [],
-        difficultyAnalysis: sessionData.difficultyAnalysis || [],
-        weakTopics: sessionData.weakTopics || [],
+        answers,
+        marked,
         summary: sessionData.summary || null,
         resultAnalysis: sessionData.resultAnalysis || [],
         sessionMeta: {
           ...sessionData.session,
           timeTakenSeconds: sessionData.timeTakenSeconds ?? null
         },
-        currentQuestionIndex: sessionData.state?.currentQuestionIndex || 0,
-        status: sessionData.session.status === 'SUBMITTED' || sessionData.session.status === 'EXPIRED'
-          ? 'completed'
-          : 'running',
+        currentQuestionIndex,
+        status: isCompleted ? 'completed' : 'running',
         timeLeft: sessionData.remainingTime ?? 0,
         error: null
       });
+
+      if (!isCompleted) {
+        writeLocalSessionState(sessionId, {
+          answers,
+          marked,
+          currentQuestionIndex
+        });
+      }
     } catch (err) {
       console.error(err);
       set({ status: 'error', error: err.message });
@@ -209,9 +284,6 @@ const useTestStore = create((set, get) => ({
         questions: mappedQuestions,
         answers: mappedAnswers,
         marked: sessionData.state?.marked || [],
-        topicAnalysis: sessionData.topicAnalysis || [],
-        difficultyAnalysis: sessionData.difficultyAnalysis || [],
-        weakTopics: sessionData.weakTopics || [],
         summary: sessionData.summary || null,
         resultAnalysis: sessionData.resultAnalysis || [],
         sessionMeta: {
@@ -257,38 +329,15 @@ const useTestStore = create((set, get) => ({
   },
 
   persistSessionState: async (partialState = {}) => {
-    const {
-      activeTest,
-      status,
-      currentQuestionIndex,
-      marked
-    } = get();
-
+    const { activeTest, status, currentQuestionIndex, marked, answers } = get();
     if (!activeTest?.sessionId || status !== 'running') return;
 
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/sessions/${activeTest.sessionId}/state`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          currentQuestionIndex,
-          marked,
-          ...partialState
-        })
-      });
-
-      if (!res.ok) {
-        return;
-      }
-
-      const data = await res.json().catch(() => ({}));
-      if (data.status === 'SUBMITTED' || data.status === 'EXPIRED') {
-        await get().loadSession(activeTest.sessionId);
-      }
-    } catch (err) {
-      console.error('Failed to persist test state:', err);
-    }
+    writeLocalSessionState(activeTest.sessionId, {
+      answers,
+      marked,
+      currentQuestionIndex,
+      ...partialState
+    });
   },
 
   toggleMark: (questionId) => {
@@ -319,27 +368,7 @@ const useTestStore = create((set, get) => ({
       return { answers: nextAnswers };
     });
 
-    const { activeTest, status } = get();
-    if (!activeTest?.sessionId || status !== 'running') return;
-
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/sessions/${activeTest.sessionId}/answer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          questionId,
-          selectedOption: optionIndex ?? null
-        })
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || 'Failed to save answer');
-      }
-    } catch (err) {
-      console.error('Failed to autosave answer:', err);
-    }
+    void get().persistSessionState();
   },
 
   nextQuestion: () => {
@@ -366,7 +395,7 @@ const useTestStore = create((set, get) => ({
   },
 
   completeTest: async ({ forceExpire = false } = {}) => {
-    const { activeTest } = get();
+    const { activeTest, answers, marked, currentQuestionIndex } = get();
     if (!activeTest?.sessionId) return;
 
     try {
@@ -376,7 +405,12 @@ const useTestStore = create((set, get) => ({
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify({ forceExpire })
+        body: JSON.stringify({
+          forceExpire,
+          answers,
+          marked,
+          currentQuestionIndex
+        })
       });
 
       if (!res.ok) {
@@ -384,6 +418,7 @@ const useTestStore = create((set, get) => ({
         throw new Error(errData.message || 'Failed to submit test');
       }
 
+      clearLocalSessionState(activeTest.sessionId);
       await get().loadSession(activeTest.sessionId);
     } catch (err) {
       console.error('Failed to submit test:', err);
@@ -392,14 +427,14 @@ const useTestStore = create((set, get) => ({
   },
 
   resetTest: () => {
+    const sessionId = get().activeTest?.sessionId;
+    clearLocalSessionState(sessionId);
+
     set({
       activeTest: null,
       questions: [],
       answers: {},
       marked: [],
-      topicAnalysis: [],
-      difficultyAnalysis: [],
-      weakTopics: [],
       summary: null,
       resultAnalysis: [],
       sessionMeta: null,

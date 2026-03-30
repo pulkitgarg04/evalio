@@ -7,12 +7,12 @@ const loginActivitySchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    emailSnapshot: {
+    email: {
         type: String,
         trim: true,
         default: ''
     },
-    nameSnapshot: {
+    name: {
         type: String,
         trim: true,
         default: ''

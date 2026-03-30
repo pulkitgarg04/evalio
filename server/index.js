@@ -1,16 +1,14 @@
-require('dotenv').config();
+require('dotenv').config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
 const express = require('express');
 const connectDB = require('./config/db');
 const routes = require('./routes');
 const config = require('./config/config');
-const { initializeRedis } = require('./utils/redisClient');
 const { startSessionExpiryWorker } = require('./utils/sessionExpiryWorker');
 const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = config.PORT;
 
 connectDB();
-initializeRedis();
 startSessionExpiryWorker();
 
 app.use("/*splat", function (req, res, next) {
