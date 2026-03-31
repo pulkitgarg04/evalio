@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { finalizeExpiredSessionsOnClient } from '@/store/useTestStore';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,6 +44,9 @@ export default function LoginPage() {
         _id: data.user_id,
         role: data.role
       }));
+
+      // Check and finalize any expired test sessions
+      await finalizeExpiredSessionsOnClient();
 
       if (data.role === 'admin') {
         router.push('/admin');

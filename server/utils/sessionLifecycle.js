@@ -3,32 +3,36 @@ const Question = require('../models/Question');
 const TestAnswer = require('../models/TestAnswer');
 const TestSession = require('../models/TestSession');
 
-async function getOrderedQuestionsForTest(testId) {
+async function getQuestionsForTest(testId) {
     const test = await Test.findById(testId);
     if (!test) {
         throw new Error('Test not found');
     }
 
     const questions = await Question.find({ questionId: { $in: test.questions } });
-    const questionMap = new Map(questions.map((question) => [question.questionId, question]));
+    const questionsById = new Map(questions.map((q) => [q.questionId, q]));
+    
     const orderedQuestions = test.questions
-        .map((questionId) => questionMap.get(questionId))
+        .map((questionId) => questionsById.get(questionId))
         .filter(Boolean);
 
     return { test, orderedQuestions };
 }
 
 function normalizeAnswerMap(rawAnswers = {}) {
-    const answerMap = {};
+    const answers = {};
+    const questionIds = Object.keys(rawAnswers);
 
-    for (const questionId in rawAnswers) {
-        const option = Number(rawAnswers[questionId]);
-        if (Number.isInteger(option)) {
-            answerMap[questionId] = option;
+    for (let i = 0; i < questionIds.length; i += 1) {
+        const questionId = questionIds[i];
+        const selectedOption = Number(rawAnswers[questionId]);
+
+        if (Number.isInteger(selectedOption)) {
+            answers[questionId] = selectedOption;
         }
     }
 
-    return answerMap;
+    return answers;
 }
 
 async function getAnswerMapForSession(sessionId) {
@@ -42,15 +46,23 @@ async function getAnswerMapForSession(sessionId) {
     return { state: null, answerMap };
 }
 
-function buildQuestionAnalysis(orderedQuestions, answerMap) {
+function createReport(orderedQuestions, answerMap) {
     let correct = 0;
     let incorrect = 0;
 
     const resultAnalysis = orderedQuestions.map((question) => {
         const selectedOption = answerMap[question._id.toString()];
         const hasAnswer = Number.isInteger(selectedOption);
-        const selectedValue = hasAnswer ? question.options[selectedOption] : undefined;
-        const isCorrect = hasAnswer && selectedValue === question.correctAnswer;
+        let selectedValue;
+        let isCorrect = false;
+
+        if (hasAnswer) {
+            selectedValue = question.options[selectedOption];
+
+            if (selectedValue === question.correctAnswer) {
+                isCorrect = true;
+            }
+        }
 
         if (isCorrect) {
             correct += 1;
@@ -90,40 +102,38 @@ async function finalizeSession(session, options = {}) {
         throw new Error('Session not found');
     }
 
-    const latestSession = await TestSession.findById(session._id);
-    if (!latestSession) {
+    const currentSession = await TestSession.findById(session._id);
+    if (!currentSession) {
         throw new Error('Session not found');
     }
 
-    session = latestSession;
+    let answers = {};
 
-    let answerMap = {};
-
-    if (session.status === 'SUBMITTED' || session.status === 'EXPIRED') {
-        const saved = await getAnswerMapForSession(session._id);
-        answerMap = saved.answerMap;
-        const { orderedQuestions } = await getOrderedQuestionsForTest(session.test);
-        return buildQuestionAnalysis(orderedQuestions, answerMap);
+    if (currentSession.status === 'SUBMITTED' || currentSession.status === 'EXPIRED') {
+        const savedAnswers = await getAnswerMapForSession(currentSession._id);
+        const testData = await getQuestionsForTest(currentSession.test);
+        
+        return createReport(testData.orderedQuestions, savedAnswers.answerMap);
     }
 
     if (options.answerMap && typeof options.answerMap === 'object') {
-        answerMap = normalizeAnswerMap(options.answerMap);
+        answers = normalizeAnswerMap(options.answerMap);
     } else {
-        const saved = await getAnswerMapForSession(session._id);
-        answerMap = saved.answerMap;
+        const savedAnswers = await getAnswerMapForSession(currentSession._id);
+        answers = savedAnswers.answerMap;
     }
 
-    const { orderedQuestions } = await getOrderedQuestionsForTest(session.test);
-    const analysis = buildQuestionAnalysis(orderedQuestions, answerMap);
+    const testData = await getQuestionsForTest(currentSession.test);
+    const analysis = createReport(testData.orderedQuestions, answers);
 
-    await TestAnswer.deleteMany({ session: session._id });
+    await TestAnswer.deleteMany({ session: currentSession._id });
 
     const answerDocs = [];
-    for (const questionId in answerMap) {
+    for (const questionId in answers) {
         answerDocs.push({
-            session: session._id,
+            session: currentSession._id,
             question: questionId,
-            selectedOption: answerMap[questionId]
+            selectedOption: answers[questionId]
         });
     }
 
@@ -132,25 +142,32 @@ async function finalizeSession(session, options = {}) {
     }
 
     const now = new Date();
-    const expiredByTime = new Date(session.endTime).getTime() <= now.getTime();
+    const isExpired = new Date(currentSession.endTime).getTime() <= now.getTime();
 
-    session.score = analysis.stats.score;
-    session.totalQuestions = analysis.stats.totalQuestions;
-    session.correctAnswers = analysis.stats.correctAnswers;
-    session.incorrectAnswers = analysis.stats.incorrectAnswers;
-    session.unanswered = analysis.stats.unanswered;
-    session.submittedAt = now;
-    session.lastActiveAt = now;
-    session.status = options.status || (expiredByTime ? 'EXPIRED' : 'SUBMITTED');
+    currentSession.score = analysis.stats.score;
+    currentSession.totalQuestions = analysis.stats.totalQuestions;
+    currentSession.correctAnswers = analysis.stats.correctAnswers;
+    currentSession.incorrectAnswers = analysis.stats.incorrectAnswers;
+    currentSession.unanswered = analysis.stats.unanswered;
+    currentSession.submittedAt = now;
+    currentSession.lastActiveAt = now;
 
-    await session.save();
+    if (options.status) {
+        currentSession.status = options.status;
+    } else if (isExpired) {
+        currentSession.status = 'EXPIRED';
+    } else {
+        currentSession.status = 'SUBMITTED';
+    }
+
+    await currentSession.save();
 
     return analysis;
 }
 
 module.exports = {
-    buildQuestionAnalysis,
+    createReport,
     finalizeSession,
     getAnswerMapForSession,
-    getOrderedQuestionsForTest
+    getQuestionsForTest
 };

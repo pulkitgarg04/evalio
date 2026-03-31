@@ -2,7 +2,6 @@ const config = {
     PORT : process.env.PORT || 8080,
     FRONTEND_URL : process.env.FRONTEND_URL,
     MONGODB_URL : process.env.MONGODB_URL,
-    SESSION_SWEEP_INTERVAL_SECONDS : Number(process.env.SESSION_SWEEP_INTERVAL_SECONDS || 30),
     NODEMAILER_MAIL : process.env.NODEMAILER_MAIL,
     NODEMAIL_APP_PASSWORD : process.env.NODEMAIL_APP_PASSWORD,
     JWT_TOKEN_SECRET : process.env.JWT_TOKEN_SECRET,

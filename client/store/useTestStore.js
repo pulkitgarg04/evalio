@@ -77,6 +77,39 @@ const writeLocalSessionState = (sessionId, state) => {
   }
 };
 
+const getExpiredSessionsFromLocalStorage = () => {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const keys = Object.keys(localStorage);
+    const now = Date.now();
+    const expiredSessions = [];
+
+    keys.forEach((key) => {
+      if (key.startsWith('test-session:')) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (parsed.endTime && new Date(parsed.endTime).getTime() <= now) {
+            const sessionId = key.replace('test-session:', '');
+            expiredSessions.push({
+              sessionId,
+              endTime: parsed.endTime
+            });
+          }
+        } catch {
+          // Ignore parse errors.
+        }
+      }
+    });
+
+    return expiredSessions;
+  } catch {
+    return [];
+  }
+};
+
 const clearLocalSessionState = (sessionId) => {
   if (typeof window === 'undefined' || !sessionId) return;
 
@@ -158,7 +191,8 @@ const useTestStore = create((set, get) => ({
       writeLocalSessionState(sessionId, {
         answers,
         marked,
-        currentQuestionIndex
+        currentQuestionIndex,
+        endTime: sessionData.session.endTime
       });
     }
   },
@@ -225,7 +259,8 @@ const useTestStore = create((set, get) => ({
         writeLocalSessionState(sessionId, {
           answers,
           marked,
-          currentQuestionIndex
+          currentQuestionIndex,
+          endTime: sessionData.session.endTime
         });
       }
     } catch (err) {
@@ -329,13 +364,14 @@ const useTestStore = create((set, get) => ({
   },
 
   persistSessionState: async (partialState = {}) => {
-    const { activeTest, status, currentQuestionIndex, marked, answers } = get();
+    const { activeTest, status, currentQuestionIndex, marked, answers, sessionMeta } = get();
     if (!activeTest?.sessionId || status !== 'running') return;
 
     writeLocalSessionState(activeTest.sessionId, {
       answers,
       marked,
       currentQuestionIndex,
+      endTime: sessionMeta?.endTime,
       ...partialState
     });
   },
@@ -457,5 +493,31 @@ const useTestStore = create((set, get) => ({
     void get().completeTest({ forceExpire: true });
   }
 }));
+
+export const finalizeExpiredSessionsOnClient = async () => {
+  const expiredSessions = getExpiredSessionsFromLocalStorage();
+
+  for (const session of expiredSessions) {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/sessions/${session.sessionId}/submit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ answers: {}, forceExpire: true })
+        }
+      );
+
+      if (res.ok) {
+        clearLocalSessionState(session.sessionId);
+      } else {
+        console.warn(`Failed to finalize session ${session.sessionId}`);
+      }
+    } catch (error) {
+      console.error(`Error finalizing session ${session.sessionId}:`, error);
+    }
+  }
+};
 
 export default useTestStore;

@@ -1,9 +1,9 @@
 const TestSession = require('../models/TestSession');
 const {
-    buildQuestionAnalysis,
+    createReport,
     finalizeSession,
     getAnswerMapForSession,
-    getOrderedQuestionsForTest
+    getQuestionsForTest
 } = require('../utils/sessionLifecycle');
 
 async function finalizeIfNeeded(session) {
@@ -32,11 +32,7 @@ async function finalizeExpiredSessionsForUser(userId) {
     }
 }
 
-function buildCompletedSessionPayload(session, answerMap, state, analysis) {
-    const remainingMs = new Date(session.endTime).getTime() - Date.now();
-    const startedAtMs = new Date(session.startTime).getTime();
-    const endedAtMs = new Date(session.submittedAt || session.endTime).getTime();
-    const timeTakenSeconds = Math.max(0, Math.floor((endedAtMs - startedAtMs) / 1000));
+function convertAnswerMapToList(answerMap) {
     const answers = [];
 
     for (const questionId in answerMap) {
@@ -45,6 +41,16 @@ function buildCompletedSessionPayload(session, answerMap, state, analysis) {
             selectedOption: answerMap[questionId]
         });
     }
+
+    return answers;
+}
+
+function createCompletedSessionPayload(session, answerMap, state, analysis) {
+    const remainingMs = new Date(session.endTime).getTime() - Date.now();
+    const startedAtMs = new Date(session.startTime).getTime();
+    const endedAtMs = new Date(session.submittedAt || session.endTime).getTime();
+    const timeTakenSeconds = Math.max(0, Math.floor((endedAtMs - startedAtMs) / 1000));
+    const answers = convertAnswerMapToList(answerMap);
 
     return {
         session,
@@ -111,9 +117,7 @@ exports.getUserStats = async (req, res) => {
 
         for (const subjectName in subjectStats) {
             const subjectData = subjectStats[subjectName];
-            const accuracy = subjectData.totalQuestions > 0
-                ? Math.round((subjectData.correctAnswers / subjectData.totalQuestions) * 100)
-                : 0;
+            const accuracy = subjectData.totalQuestions > 0 ? Math.round((subjectData.correctAnswers / subjectData.totalQuestions) * 100) : 0;
 
             subjectAnalysis.push({
                 subject: subjectName,
@@ -149,16 +153,14 @@ exports.getUserHistory = async (req, res) => {
             .sort({ submittedAt: -1, updatedAt: -1 })
             .populate('test', 'title subject duration');
 
-        const sessionsWithLinks = [];
-
-        for (const session of sessions) {
+        const sessionsWithLinks = sessions.map((session) => {
             const sessionObj = session.toObject();
-            sessionsWithLinks.push({
+            return {
                 ...sessionObj,
                 reviewPath: `/dashboard/review/${sessionObj._id}`,
                 reviewApi: `/api/v1/sessions/${sessionObj._id}/review`
-            });
-        }
+            };
+        });
 
         res.json(sessionsWithLinks);
     } catch (error) {
@@ -185,28 +187,21 @@ exports.getSession = async (req, res) => {
         const { answerMap, state } = await getAnswerMapForSession(sessionId);
 
         if (session.status === 'SUBMITTED' || session.status === 'EXPIRED') {
-            const { orderedQuestions } = await getOrderedQuestionsForTest(session.test);
-            const analysis = buildQuestionAnalysis(orderedQuestions, answerMap);
-            return res.json(buildCompletedSessionPayload(session, answerMap, state, analysis));
+            const { orderedQuestions } = await getQuestionsForTest(session.test);
+            const analysis = createReport(orderedQuestions, answerMap);
+            return res.json(createCompletedSessionPayload(session, answerMap, state, analysis));
         }
 
-        const ensuredState = state || { marked: [], currentQuestionIndex: 0 };
-        const answers = [];
-
-        for (const questionId in answerMap) {
-            answers.push({
-                question: questionId,
-                selectedOption: answerMap[questionId]
-            });
-        }
+        const answers = convertAnswerMapToList(answerMap);
+        const safeState = state || { marked: [], currentQuestionIndex: 0 };
 
         res.json({
             session,
             remainingTime: Math.max(0, Math.floor(remainingMs / 1000)),
             answers,
             state: {
-                marked: ensuredState?.marked || [],
-                currentQuestionIndex: ensuredState?.currentQuestionIndex || 0
+                marked: safeState.marked || [],
+                currentQuestionIndex: safeState.currentQuestionIndex || 0
             }
         });
     } catch (error) {
@@ -234,9 +229,9 @@ exports.getSessionReview = async (req, res) => {
         }
 
         const { answerMap, state } = await getAnswerMapForSession(sessionId);
-        const { orderedQuestions } = await getOrderedQuestionsForTest(session.test._id || session.test);
-        const analysis = buildQuestionAnalysis(orderedQuestions, answerMap);
-        const payload = buildCompletedSessionPayload(session, answerMap, state, analysis);
+        const { orderedQuestions } = await getQuestionsForTest(session.test._id || session.test);
+        const analysis = createReport(orderedQuestions, answerMap);
+        const payload = createCompletedSessionPayload(session, answerMap, state, analysis);
 
         payload.review = {
             sessionId: session._id,
@@ -270,9 +265,10 @@ exports.submitTest = async (req, res) => {
             return res.status(403).json({ message: 'Unauthorized' });
         }
 
-        const clientAnswers = req.body?.answers && typeof req.body.answers === 'object'
-            ? req.body.answers
-            : {};
+        let clientAnswers = {};
+        if (req.body && typeof req.body.answers === 'object' && req.body.answers !== null) {
+            clientAnswers = req.body.answers;
+        }
 
         const status = req.body?.forceExpire ? 'EXPIRED' : undefined;
         const analysis = await finalizeSession(session, {

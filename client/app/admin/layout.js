@@ -2,13 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
+import { finalizeExpiredSessionsOnClient } from '@/store/useTestStore';
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const userStr = localStorage.getItem('user');
       if (!userStr) {
         router.replace('/login');
@@ -21,6 +22,10 @@ export default function AdminLayout({ children }) {
           router.replace('/dashboard');
           return;
         }
+
+        // Check and finalize any expired test sessions
+        await finalizeExpiredSessionsOnClient();
+
         setIsLoading(false);
       } catch (error) {
         console.error("Auth check failed", error);

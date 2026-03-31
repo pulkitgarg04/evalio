@@ -3,13 +3,11 @@ const express = require('express');
 const connectDB = require('./config/db');
 const routes = require('./routes');
 const config = require('./config/config');
-const { startSessionExpiryWorker } = require('./utils/sessionExpiryWorker');
 const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = config.PORT;
 
 connectDB();
-startSessionExpiryWorker();
 
 app.use("/*splat", function (req, res, next) {
     const allowedOrigins = [
