@@ -13,8 +13,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Evalio",
-  description: "Turn your exams into success stories."
+  title: "Evalio - Online Exam & Assessment Platform for Chitkara University",
+  description: "Evalio is your comprehensive online exam platform with automated assessments, personalized learning paths, real-time analytics, and detailed feedback for students and educators.",
+  keywords: ["online exams", "assessment platform", "automated tests", "learning management", "exam software"],
+  openGraph: {
+    title: "Evalio - Automated Online Exam & Assessment Platform",
+    description: "Create, manage, and track online exams with real-time analytics and personalized learning paths.",
+    url: "https://myevalio.tech/",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }) {

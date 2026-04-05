@@ -1,11 +1,10 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function VerifyEmail() {
     const { token } = useParams();
-    const router = useRouter();
     const [status, setStatus] = useState('verifying');
     const [message, setMessage] = useState('Verifying your email...');
 

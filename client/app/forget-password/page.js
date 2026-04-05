@@ -25,24 +25,23 @@ export default function ForgetPasswordPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
-        }
+        },
       );
 
       let data = {};
       try {
         data = await res.json();
-      } catch {
-      }
+      } catch {}
 
       if (!res.ok) {
         throw new Error(
-          data.error || data.message || "Failed to send reset email"
+          data.error || data.message || "Failed to send reset email",
         );
       }
 
       setSuccess(
         data.message ||
-          "If this email is registered, we have sent you a password reset link."
+          "If this email is registered, we have sent you a password reset link.",
       );
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
@@ -63,8 +62,8 @@ export default function ForgetPasswordPage() {
             Forgot your password?
           </h2>
           <p className="text-lg text-emerald-100/80 mb-8 leading-relaxed">
-            No worries. Enter your email and we&apos;ll send you a secure link to
-            reset your password.
+            No worries. Enter your email and we&apos;ll send you a secure link
+            to reset your password.
           </p>
         </div>
       </div>
@@ -83,8 +82,8 @@ export default function ForgetPasswordPage() {
             Reset your password
           </h1>
           <p className="mt-2 text-sm text-gray-500">
-            Enter the email associated with your account and we&apos;ll email you
-            a reset link.
+            Enter the email associated with your account and we&apos;ll email
+            you a reset link.
           </p>
         </div>
 

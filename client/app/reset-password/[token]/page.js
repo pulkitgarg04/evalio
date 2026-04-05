@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { ArrowLeft, Lock, Loader2 } from "lucide-react";
 
 export default function ResetPasswordPage() {

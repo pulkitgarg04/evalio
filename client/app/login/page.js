@@ -1,19 +1,19 @@
 "use client";
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import { finalizeExpiredSessionsOnClient } from '@/store/useTestStore';
+import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { finalizeExpiredSessionsOnClient } from "@/store/useTestStore";
 
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: "",
+    password: "",
   });
 
   const handleChange = (e) => {
@@ -23,37 +23,41 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(formData)
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(formData),
+        },
+      );
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || data.error || 'Login failed');
+        throw new Error(data.message || data.error || "Login failed");
       }
 
-      localStorage.setItem('user', JSON.stringify({
-        username: data.username,
-        _id: data.user_id,
-        role: data.role
-      }));
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          username: data.username,
+          _id: data.user_id,
+          role: data.role,
+        }),
+      );
 
-      // Check and finalize any expired test sessions
       await finalizeExpiredSessionsOnClient();
 
-      if (data.role === 'admin') {
-        router.push('/admin');
+      if (data.role === "admin") {
+        router.push("/admin");
       } else {
-        router.push('/dashboard');
+        router.push("/dashboard");
       }
-
     } catch (err) {
       setError(err.message);
     } finally {
@@ -69,8 +73,12 @@ export default function LoginPage() {
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-teal-400/10 rounded-full blur-[100px] opacity-30"></div>
 
         <div className="relative z-10 max-w-lg text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">Welcome back to Evalio</h2>
-          <p className="text-lg text-emerald-100/80 mb-8 leading-relaxed">Continue your journey with us.</p>
+          <h2 className="text-4xl font-bold text-white mb-6">
+            Welcome back to Evalio
+          </h2>
+          <p className="text-lg text-emerald-100/80 mb-8 leading-relaxed">
+            Continue your journey with us.
+          </p>
           <div className="relative w-full aspect-video rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 shadow-2xl overflow-hidden group p-1">
             <div className="w-full h-full bg-[#0a3a30]/50 rounded-xl flex flex-col overflow-hidden relative">
               <div className="h-8 border-b border-white/5 flex items-center px-4 gap-2 bg-white/5">
@@ -120,7 +128,10 @@ export default function LoginPage() {
       </div>
 
       <div className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-24">
-        <Link href="/" className="absolute top-6 left-6 lg:left-auto lg:right-12 flex items-center text-gray-400 hover:text-[#0a3a30] transition-colors font-medium">
+        <Link
+          href="/"
+          className="absolute top-6 left-6 lg:left-auto lg:right-12 flex items-center text-gray-400 hover:text-[#0a3a30] transition-colors font-medium"
+        >
           <ArrowLeft size={20} className="mr-2" /> Back to Home
         </Link>
 
@@ -131,11 +142,18 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {error && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">{error}</div>}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
+            {error}
+          </div>
+        )}
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <label className="text-sm font-bold text-[#0a3a30] leading-none" htmlFor="email">
+            <label
+              className="text-sm font-bold text-[#0a3a30] leading-none"
+              htmlFor="email"
+            >
               Email
             </label>
             <input
@@ -151,10 +169,16 @@ export default function LoginPage() {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-bold text-[#0a3a30] leading-none" htmlFor="password">
+              <label
+                className="text-sm font-bold text-[#0a3a30] leading-none"
+                htmlFor="password"
+              >
                 Password
               </label>
-              <Link href="/forget-password" className="text-sm font-medium text-emerald-600 hover:underline">
+              <Link
+                href="/forget-password"
+                className="text-sm font-medium text-emerald-600 hover:underline"
+              >
                 Forgot password?
               </Link>
             </div>
@@ -182,13 +206,16 @@ export default function LoginPage() {
             disabled={loading}
             className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#0a3a30] px-8 text-sm font-bold text-white shadow-lg shadow-emerald-900/10 transition-all hover:bg-[#022c22] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {loading ? 'Signing In...' : 'Sign In'}
+            {loading ? "Signing In..." : "Sign In"}
           </button>
         </form>
 
         <p className="mt-8 text-center text-sm text-gray-500">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-bold text-[#0a3a30] hover:underline">
+          <Link
+            href="/signup"
+            className="font-bold text-[#0a3a30] hover:underline"
+          >
             Sign up
           </Link>
         </p>

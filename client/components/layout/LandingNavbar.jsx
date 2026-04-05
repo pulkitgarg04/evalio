@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LogOut, Loader2 } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 export default function LandingNavbar() {
   const [user, setUser] = useState(null);
@@ -14,6 +14,7 @@ export default function LandingNavbar() {
         const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/me`, {
           credentials: 'include',
         });
+
         if (res.ok) {
           const data = await res.json();
           setUser(data);
@@ -24,18 +25,22 @@ export default function LandingNavbar() {
         setLoading(false);
       }
     };
+
     checkAuth();
   }, []);
 
   const handleLogout = async () => {
     try {
       setLoggingOut(true);
+
       await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       });
+      
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      
       setUser(null);
     } catch (err) {
       console.error('Logout failed:', err);
@@ -55,8 +60,9 @@ export default function LandingNavbar() {
 
         <div className="flex items-center gap-4">
           {loading ? (
-            <div className="px-4 py-2">
-              <Loader2 className="animate-spin text-slate-400" size={20} />
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:block h-10 w-20 rounded-full bg-slate-200/80 animate-pulse" />
+              <div className="h-10 w-24 rounded-full bg-slate-200/80 animate-pulse" />
             </div>
           ) : user ? (
             <>
@@ -75,11 +81,11 @@ export default function LandingNavbar() {
                 className="px-4 py-2 text-sm font-bold text-slate-600 bg-slate-100/80 hover:bg-slate-200 rounded-full transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 {loggingOut ? (
-                  <Loader2 className="animate-spin" size={16} />
+                  <span className="h-4 w-4 rounded bg-slate-300 animate-pulse" />
                 ) : (
                   <LogOut size={16} />
                 )}
-                <span className="hidden sm:inline">Logout</span>
+                <span className="hidden sm:inline">{loggingOut ? 'Logging out' : 'Logout'}</span>
               </button>
             </>
           ) : (

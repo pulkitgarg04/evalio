@@ -1,8 +1,6 @@
 "use client";
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowRight, BarChart3, Target, CheckCircle2, LayoutDashboard, Brain, FileText, Check } from 'lucide-react';
 
+import { Target, CheckCircle2, Check } from 'lucide-react';
 import Footer from '@/components/layout/Footer';
 import LandingNavbar from '@/components/layout/LandingNavbar';
 
@@ -14,8 +12,6 @@ const chartData = [
 ];
 
 export default function Home() {
-  const router = useRouter();
-
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-[#0ddc90] selection:text-slate-900">
       <LandingNavbar />
