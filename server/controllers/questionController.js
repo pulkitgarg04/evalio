@@ -211,11 +211,19 @@ exports.bulkCreateQuestions = async (req, res) => {
 
 exports.getQuestionBank = async (req, res) => {
     try {
-        const { subject, page = 1, limit = 50, excludeUsed } = req.query;
+        const { subject, topic, subTopic, page = 1, limit = 50, excludeUsed } = req.query;
         const query = {};
 
         if (subject) {
             query.subject = subject;
+        }
+
+        if (topic) {
+            query.topic = topic;
+        }
+
+        if (subTopic) {
+            query.subTopic = subTopic;
         }
 
         if (excludeUsed === 'true') {

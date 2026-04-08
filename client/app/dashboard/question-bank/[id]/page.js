@@ -2,20 +2,22 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, BookOpen, CheckCircle, XCircle, LayoutList, ChevronLeft, ChevronRight, Layers, ListTree } from 'lucide-react';
+import { ArrowLeft, BookOpen, CheckCircle, XCircle, LayoutList, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function QuestionBankQuestionsPage() {
   const params = useParams();
   const [subjectName, setSubjectName] = useState('');
   const [questions, setQuestions] = useState([]);
+  const [availableTopics, setAvailableTopics] = useState([]);
+  const [availableSubTopics, setAvailableSubTopics] = useState([]);
+  const [selectedTaxonomy, setSelectedTaxonomy] = useState('all');
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [revisionMode, setRevisionMode] = useState(false);
   const [userAnswers, setUserAnswers] = useState({});
-  const [viewBasis, setViewBasis] = useState('questions');
 
   useEffect(() => {
     const fetchSubjectAndQuestions = async () => {
@@ -38,8 +40,27 @@ export default function QuestionBankQuestionsPage() {
         }
 
         if (name) {
+          const queryParams = new URLSearchParams({
+            subject: name,
+            page: String(currentPage),
+            limit: '50'
+          });
+
+          if (selectedTaxonomy !== 'all') {
+            const [taxonomyType, ...rawValueParts] = selectedTaxonomy.split('::');
+            const taxonomyValue = rawValueParts.join('::');
+
+            if (taxonomyType === 'topic') {
+              queryParams.set('topic', taxonomyValue);
+            }
+
+            if (taxonomyType === 'subTopic') {
+              queryParams.set('subTopic', taxonomyValue);
+            }
+          }
+
           const questionsRes = await fetch(
-            `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/questions/bank?subject=${encodeURIComponent(name)}&page=${currentPage}&limit=50`,
+            `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/questions/bank?${queryParams.toString()}`,
             { credentials: 'include' }
           );
 
@@ -60,7 +81,50 @@ export default function QuestionBankQuestionsPage() {
     if (params?.id) {
       fetchSubjectAndQuestions();
     }
-  }, [params?.id, currentPage, subjectName]);
+  }, [params?.id, currentPage, subjectName, selectedTaxonomy]);
+
+  useEffect(() => {
+    const fetchAvailableTaxonomy = async () => {
+      if (!subjectName) return;
+
+      try {
+        const topicsRes = await fetch(
+          `${process.env.NEXT_PUBLIC_SERVER_URL}/api/v1/questions/bank?subject=${encodeURIComponent(subjectName)}&page=1&limit=5000`,
+          { credentials: 'include' }
+        );
+
+        if (!topicsRes.ok) return;
+
+        const result = await topicsRes.json();
+        const questionList = result.questions || [];
+
+        const uniqueTopics = [...new Set(questionList.map((q) => q.topic?.trim()).filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b));
+        const uniqueSubTopics = [...new Set(questionList.map((q) => q.subTopic?.trim()).filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b));
+
+        setAvailableTopics(uniqueTopics);
+        setAvailableSubTopics(uniqueSubTopics);
+      } catch (err) {
+        console.error('Failed to load topic filters:', err);
+      }
+    };
+
+    fetchAvailableTaxonomy();
+  }, [subjectName, params?.id]);
+
+  useEffect(() => {
+    setSelectedTaxonomy('all');
+    setCurrentPage(1);
+    setUserAnswers({});
+  }, [params?.id]);
+
+  const handleTaxonomyChange = (event) => {
+    const taxonomyValue = event.target.value;
+    setSelectedTaxonomy(taxonomyValue);
+    setCurrentPage(1);
+    setUserAnswers({});
+  };
 
   const handleOptionSelect = (qId, option) => {
     if (revisionMode) return;
@@ -77,38 +141,12 @@ export default function QuestionBankQuestionsPage() {
   };
 
   const groupedQuestions = React.useMemo(() => {
-    if (viewBasis === 'questions') {
-      return [{
-        key: 'all-questions',
-        title: '',
-        questions
-      }];
-    }
-
-    const groups = questions.reduce((acc, q) => {
-      const rawKey = viewBasis === 'topic' ? q.topic : q.subTopic;
-      const normalizedKey = rawKey?.trim() || 'Uncategorized';
-
-      if (!acc[normalizedKey]) {
-        acc[normalizedKey] = [];
-      }
-
-      acc[normalizedKey].push(q);
-      return acc;
-    }, {});
-
-    const sortedKeys = Object.keys(groups).sort((a, b) => {
-      if (a === 'Uncategorized') return 1;
-      if (b === 'Uncategorized') return -1;
-      return a.localeCompare(b);
-    });
-
-    return sortedKeys.map((key) => ({
-      key,
-      title: key,
-      questions: groups[key]
-    }));
-  }, [questions, viewBasis]);
+    return [{
+      key: 'all-questions',
+      title: '',
+      questions
+    }];
+  }, [questions]);
 
   const questionNumberMap = React.useMemo(() => {
     const start = (currentPage - 1) * 50;
@@ -135,11 +173,11 @@ export default function QuestionBankQuestionsPage() {
 
         {!loading && questions.length > 0 && (
           <div className="flex flex-col gap-2 w-full sm:w-auto">
-            <div className="flex items-center bg-white rounded-lg p-1 border border-gray-200 shadow-xs w-full sm:w-auto">
+            <div className="flex items-center bg-white rounded-lg p-1 border border-gray-200 shadow-xs w-full sm:w-auto mx-auto">
               <button
                 onClick={() => setRevisionMode(false)}
                 className={cn(
-                  "flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all",
+                  "cursor-pointer flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all",
                   !revisionMode ? "bg-[#0ddc90] text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
                 )}
               >
@@ -148,7 +186,7 @@ export default function QuestionBankQuestionsPage() {
               <button
                 onClick={() => setRevisionMode(true)}
                 className={cn(
-                  "flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2",
+                  "cursor-pointer flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2",
                   revisionMode ? "bg-slate-800 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"
                 )}
               >
@@ -156,34 +194,36 @@ export default function QuestionBankQuestionsPage() {
               </button>
             </div>
 
-            <div className="flex items-center bg-white rounded-lg p-1 border border-gray-200 shadow-xs w-full sm:w-auto">
-              <button
-                onClick={() => setViewBasis('questions')}
-                className={cn(
-                  "flex-1 sm:flex-none px-3.5 py-2 text-sm font-medium rounded-md transition-all",
-                  viewBasis === 'questions' ? "bg-[#0ddc90] text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                )}
+            <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 shadow-xs px-3 py-2 w-full sm:w-auto mx-auto">
+              <label htmlFor="topic-filter" className="text-xs font-semibold text-slate-500 whitespace-nowrap">
+                Topic
+              </label>
+              <select
+                id="topic-filter"
+                value={selectedTaxonomy}
+                onChange={handleTaxonomyChange}
+                className="text-sm text-slate-700 bg-transparent outline-none w-full sm:w-60 cursor-pointer"
               >
-                Questions
-              </button>
-              <button
-                onClick={() => setViewBasis('topic')}
-                className={cn(
-                  "flex-1 sm:flex-none px-3.5 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2",
-                  viewBasis === 'topic' ? "bg-[#0ddc90] text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                <option value="all">All Questions</option>
+                {availableTopics.length > 0 && (
+                  <optgroup label="Topics">
+                    {availableTopics.map((topic) => (
+                      <option key={`topic-${topic}`} value={`topic::${topic}`}>
+                        {topic}
+                      </option>
+                    ))}
+                  </optgroup>
                 )}
-              >
-                <Layers size={15} /> Topic
-              </button>
-              <button
-                onClick={() => setViewBasis('subTopic')}
-                className={cn(
-                  "flex-1 sm:flex-none px-3.5 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2",
-                  viewBasis === 'subTopic' ? "bg-[#0ddc90] text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                {availableSubTopics.length > 0 && (
+                  <optgroup label="Subtopics">
+                    {availableSubTopics.map((subTopic) => (
+                      <option key={`subTopic-${subTopic}`} value={`subTopic::${subTopic}`}>
+                        {subTopic}
+                      </option>
+                    ))}
+                  </optgroup>
                 )}
-              >
-                <ListTree size={15} /> Subtopic
-              </button>
+              </select>
             </div>
           </div>
         )}
@@ -219,23 +259,16 @@ export default function QuestionBankQuestionsPage() {
       ) : questions.length === 0 ? (
         <div className="py-16 text-center bg-gray-50 rounded-lg border border-dashed border-gray-200">
           <BookOpen size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-sm font-medium text-slate-600">No questions available for this subject.</p>
+          <p className="text-sm font-medium text-slate-600">
+            {selectedTaxonomy === 'all'
+              ? 'No questions available for this subject.'
+              : 'No questions available for the selected filter.'}
+          </p>
         </div>
       ) : (
         <div className="space-y-6">
           {groupedQuestions.map((group) => (
             <div key={group.key} className="space-y-4">
-              {viewBasis !== 'questions' && (
-                <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white/80 px-4 py-3">
-                  <h2 className="text-sm md:text-base font-semibold text-slate-800">
-                    {group.title}
-                  </h2>
-                  <span className="text-xs font-medium text-slate-500 bg-slate-100 rounded-md px-2 py-1">
-                    {group.questions.length} question{group.questions.length > 1 ? 's' : ''}
-                  </span>
-                </div>
-              )}
-
               {group.questions.map((q) => {
                 const hasAnswered = !!userAnswers[q._id];
                 const selectedOpt = userAnswers[q._id];

@@ -47,6 +47,19 @@ const buildAnswerMap = (sessionData) => {
 
 const getSessionStorageKey = (sessionId) => `test-session:${sessionId}`;
 
+const getCurrentUserIdFromLocalStorage = () => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const rawUser = localStorage.getItem('user');
+    if (!rawUser) return null;
+    const parsedUser = JSON.parse(rawUser);
+    return parsedUser?._id || parsedUser?.user_id || null;
+  } catch {
+    return null;
+  }
+};
+
 const readLocalSessionState = (sessionId) => {
   if (typeof window === 'undefined' || !sessionId) return null;
 
@@ -71,7 +84,13 @@ const writeLocalSessionState = (sessionId, state) => {
   if (typeof window === 'undefined' || !sessionId) return;
 
   try {
-    localStorage.setItem(getSessionStorageKey(sessionId), JSON.stringify(state));
+    localStorage.setItem(
+      getSessionStorageKey(sessionId),
+      JSON.stringify({
+        ...state,
+        userId: state?.userId || getCurrentUserIdFromLocalStorage()
+      })
+    );
   } catch {
     // Ignore storage failures.
   }
@@ -81,6 +100,7 @@ const getExpiredSessionsFromLocalStorage = () => {
   if (typeof window === 'undefined') return [];
 
   try {
+    const currentUserId = getCurrentUserIdFromLocalStorage();
     const keys = Object.keys(localStorage);
     const now = Date.now();
     const expiredSessions = [];
@@ -91,6 +111,12 @@ const getExpiredSessionsFromLocalStorage = () => {
           const raw = localStorage.getItem(key);
           if (!raw) return;
           const parsed = JSON.parse(raw);
+
+          if (currentUserId && parsed.userId && parsed.userId !== currentUserId) {
+            localStorage.removeItem(key);
+            return;
+          }
+
           if (parsed.endTime && new Date(parsed.endTime).getTime() <= now) {
             const sessionId = key.replace('test-session:', '');
             expiredSessions.push({
@@ -495,6 +521,9 @@ const useTestStore = create((set, get) => ({
 }));
 
 export const finalizeExpiredSessionsOnClient = async () => {
+  const currentUserId = getCurrentUserIdFromLocalStorage();
+  if (!currentUserId) return;
+
   const expiredSessions = getExpiredSessionsFromLocalStorage();
 
   for (const session of expiredSessions) {
@@ -512,6 +541,11 @@ export const finalizeExpiredSessionsOnClient = async () => {
       if (res.ok) {
         clearLocalSessionState(session.sessionId);
       } else {
+        if ([401, 403, 404].includes(res.status)) {
+          clearLocalSessionState(session.sessionId);
+          continue;
+        }
+
         console.warn(`Failed to finalize session ${session.sessionId}`);
       }
     } catch (error) {
