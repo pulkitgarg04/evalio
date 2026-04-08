@@ -9,7 +9,7 @@ async function sendVerificationMail(user) {
     const token = jwt.sign({
             user_id: user._id,
             email: user.email
-        }, config.JWT_RESET_PASSWORD_SECRET, {
+        }, config.JWT_TOKEN_SIGNUP_MAIL_SECRET, {
             expiresIn: "5m"
         });
 

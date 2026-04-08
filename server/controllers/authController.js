@@ -121,7 +121,15 @@ exports.verifyMail = async (req, res) => {
     try {
         const { token } = req.params;
 
-        const decoded = jwt.verify(token, config.JWT_TOKEN_SIGNUP_MAIL_SECRET);
+        let decoded;
+
+        try {
+            decoded = jwt.verify(token, config.JWT_TOKEN_SIGNUP_MAIL_SECRET);
+        } catch (signupVerifyError) {
+            // Backward compatibility: old verification links were signed with reset secret.
+            decoded = jwt.verify(token, config.JWT_RESET_PASSWORD_SECRET);
+        }
+
         if (!decoded) res.status(400).send({ message: "Invalid Token" });
 
         const user = await User.findById(decoded.user_id);
@@ -134,7 +142,7 @@ exports.verifyMail = async (req, res) => {
         res.status(200).send({ message: "User has been verified" });
 
     } catch (err) {
-        res.status(500).send(err);
+        res.status(400).send({ message: err.message || "Invalid or expired token" });
     }
 }
 
