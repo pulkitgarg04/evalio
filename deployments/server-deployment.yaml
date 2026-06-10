@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evalio-server
+  labels:
+    app: evalio-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: evalio-server
+  template:
+    metadata:
+      labels:
+        app: evalio-server
+    spec:
+      containers:
+        - name: evalio-server
+          image: evalio-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: evalio-config
+                  key: PORT
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: evalio-config
+                  key: FRONTEND_URL
+            - name: MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: evalio-secrets
+                  key: MONGODB_URL
+            - name: JWT_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: evalio-secrets
+                  key: JWT_TOKEN_SECRET
+            - name: JWT_TOKEN_SIGNUP_MAIL_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: evalio-secrets
+                  key: JWT_TOKEN_SIGNUP_MAIL_SECRET
+            - name: JWT_RESET_PASSWORD_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: evalio-secrets
+                  key: JWT_RESET_PASSWORD_SECRET
+            - name: NODEMAILER_MAIL
+              valueFrom:
+                secretKeyRef:
+                  name: evalio-secrets
+                  key: NODEMAILER_MAIL
+            - name: NODEMAIL_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: evalio-secrets
+                  key: NODEMAIL_APP_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+            requests:
+              cpu: "0.1"
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: evalio-server-service
+  labels:
+    app: evalio-server
+spec:
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app: evalio-server
+  type: ClusterIP
